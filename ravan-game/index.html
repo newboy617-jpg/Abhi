@@ -904,7 +904,7 @@ function shoot(wx, wy, isTouch) {
   if (wy > 790) return;                               // ignore palms resting on the bottom edge
   game.arrowsLeft--; game.shots++; game.cooldown = 0.38; game.stringT = 0.4;
   const dist = Math.hypot(wx - NOCK.x, wy - NOCK.y);
-  const tol = isTouch ? Math.min(30, 14 + 8 / view.scale) : 6;
+  const tol = isTouch ? Math.min(30, 14 + 8 / view.scale) : 14;   // mouse players get a smaller allowance than fingers; they also see an aiming circle
   game.arrows.push({ sx: NOCK.x, sy: NOCK.y, tx: wx, ty: wy, t: 0, dur: 0.18 + dist / 3200, lift: dist * 0.08, tol });
   game.marks.push({ x: wx, y: wy, life: 0.18 + dist / 3200, max: 0.18 + dist / 3200 });
   game.aim = { x: wx, y: wy };
