@@ -214,6 +214,13 @@ p { margin: 0; }
 .settings-panel label { display: grid; gap: 0.3rem; font-weight: 700; }
 .settings-panel .check { display: flex; align-items: center; gap: 0.6rem; }
 .settings-panel .check input { width: 1.3rem; height: 1.3rem; accent-color: var(--marigold); }
+.laugh-set { margin: 0; padding: 0.8rem 1rem 1rem; border: 1px solid var(--line-soft); border-radius: 0.4rem; display: grid; gap: 0.7rem; min-width: 0; }
+.laugh-set legend { padding-inline: 0.4rem; font-weight: 700; }
+.laugh-set .check { font-weight: 500; }
+.file-pick { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.file-pick:focus-visible + label { outline: 3px solid var(--paper); outline-offset: 3px; }
+label.btn { display: inline-flex; align-items: center; box-sizing: border-box; cursor: pointer; }
+.laugh-status { font-size: 0.95rem; color: var(--muted); }
 .settings-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
 .small-panel { width: min(100%, 26rem); display: grid; gap: 1rem; text-align: center; justify-items: center; }
 
@@ -324,10 +331,20 @@ p { margin: 0; }
         <select class="field" id="setDiff"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select>
       </label>
     </div>
-    <div class="row">
-      <label class="check" for="setSound"><input type="checkbox" id="setSound"> Sound effects</label>
-      <button type="button" class="btn" id="testLaughBtn">Play Ravan's laugh</button>
-    </div>
+    <label class="check" for="setSound"><input type="checkbox" id="setSound"> Sound effects</label>
+    <fieldset class="laugh-set">
+      <legend>Ravan's laugh</legend>
+      <div class="row">
+        <label class="check" for="laughSynth"><input type="radio" name="laughMode" value="synth" id="laughSynth"> Built-in laugh</label>
+        <label class="check" for="laughClip"><input type="radio" name="laughMode" value="clip" id="laughClip"> My recording</label>
+      </div>
+      <div class="row">
+        <input type="file" id="laughFile" class="file-pick" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus">
+        <label class="btn" for="laughFile">Choose a recording</label>
+        <button type="button" class="btn" id="testLaughBtn">Play Ravan's laugh</button>
+      </div>
+      <p class="laugh-status" id="laughStatus" aria-live="polite"></p>
+    </fieldset>
     <div class="row">
       <button type="button" class="btn" id="resetBoardBtn">Clear leaderboard</button>
       <button type="submit" class="btn-primary" id="settingsDone">Done</button>
@@ -363,8 +380,9 @@ const EB = { x: -474, y: 222, w: 948, h: 488 };    // effigy sprite box (x relat
 const DIFF = { easy: { amp: 0.7, spd: 0.75 }, normal: { amp: 1, spd: 1 }, hard: { amp: 1.2, spd: 1.3 } };
 const ARROW_CHOICES = [12, 15, 18, 20, 25];          // at least 11 targets, so never fewer than 12
 const TIME_CHOICES = [30, 45, 60, 90, 120];
-const DEFAULTS = { stall: 'Dandiya Night Games', prize: 'Top score tonight wins a prize!', arrows: 15, time: 60, diff: 'normal', sound: true };
-const KEY_SET = 'ravan10.settings', KEY_BOARD = 'ravan10.board';
+const DEFAULTS = { stall: 'Dandiya Night Games', prize: 'Top score tonight wins a prize!', arrows: 15, time: 60, diff: 'normal', sound: true, laughMode: 'synth' };
+const KEY_SET = 'ravan10.settings', KEY_BOARD = 'ravan10.board', KEY_CLIP = 'ravan10.laughClip';
+const CLIP_MAX_BYTES = 1024 * 1024;                      // far more than a laugh needs, and safely inside browser storage
 const FW_COLORS = ['255,182,39', '255,90,60', '120,230,140', '110,190,255', '255,120,220', '255,244,224'];
 const PAPER_COLORS = ['#ffb627', '#d7263d', '#2f9e5b', '#fff4e0', '#ff7a1a', '#c2185b'];
 const INK = '#2a0b0b';
@@ -390,6 +408,7 @@ function loadSettings() {
   s.time = TIME_CHOICES.includes(+s.time) ? +s.time : DEFAULTS.time;
   if (!Object.prototype.hasOwnProperty.call(DIFF, s.diff)) s.diff = DEFAULTS.diff;
   s.sound = s.sound !== false;
+  s.laughMode = s.laughMode === 'clip' ? 'clip' : 'synth';
   s.stall = typeof s.stall === 'string' ? s.stall.slice(0, 40) : DEFAULTS.stall;
   s.prize = typeof s.prize === 'string' ? s.prize.slice(0, 60) : DEFAULTS.prize;
   return s;
@@ -402,6 +421,8 @@ function loadBoard() {
     .sort((a, b) => b.s - a.s).slice(0, 10);
 }
 let settings = loadSettings();
+let storedClip = null;
+try { storedClip = localStorage.getItem('ravan10.laughClip'); } catch (e) { storedClip = null; }
 let board = loadBoard();
 const saveSettings = () => store.set(KEY_SET, settings);
 const saveBoard = () => store.set(KEY_BOARD, board);
@@ -414,11 +435,49 @@ addEventListener('storage', (e) => {
 /* ================= sound (synthesised, no files) ================= */
 const Sound = (() => {
   let ac = null, master = null, noiseBuf = null, lastFw = 0, laughBusyUntil = 0;
+  let clipUrl = null, clipBuf = null, clipGain = 1, clipPending = null;   // the owner's own laugh recording, if any
   function init() {
     if (ac) return;
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     try { ac = new AC(); master = ac.createGain(); master.gain.value = 0.7; master.connect(ac.destination); } catch (e) { ac = null; }
+    if (ac && clipUrl && !clipBuf) decodeClip(clipUrl).catch(() => {});
+  }
+  function dataUrlBytes(u) {
+    const bin = atob(u.slice(u.indexOf(',') + 1)), out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out.buffer;
+  }
+  function decodeClip(url) {
+    const job = new Promise((res, rej) => {
+      if (!ac) { rej(new Error('no audio')); return; }
+      let settled = false;
+      const done = (b) => { if (settled) return; settled = true; res(b); }, fail = (e) => { if (settled) return; settled = true; rej(e || new Error('decode failed')); };
+      try { const p = ac.decodeAudioData(dataUrlBytes(url), done, fail); if (p && p.then) p.then(done, fail); } catch (e) { fail(e); }
+    }).then((b) => {
+      let peak = 0;
+      for (let ch = 0; ch < b.numberOfChannels; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > peak) peak = v; } }
+      if (!(peak > 0.001)) throw new Error('silent');
+      if (clipUrl === url) { clipBuf = b; clipGain = Math.min(6, 0.95 / peak); }   // level quiet phone recordings up
+      return b.duration;
+    });
+    clipPending = job.catch(() => 0);
+    return job;
+  }
+  // remember a recording; decodes now if sound is running, otherwise on the first tap
+  function setClip(url) {
+    clipUrl = url || null; clipBuf = null;
+    if (!clipUrl) return Promise.resolve(0);
+    return ac ? decodeClip(clipUrl) : Promise.resolve(0);
+  }
+  function playClip(start, kind) {
+    const len = Math.min(clipBuf.duration, kind === 'big' ? 8 : 3.2);   // misses get a shorter cut of a long recording
+    const src = ac.createBufferSource(), g = ac.createGain(), lvl = clipGain * (kind === 'big' ? 1 : 0.85);
+    src.buffer = clipBuf;
+    g.gain.setValueAtTime(lvl, start);
+    if (len < clipBuf.duration) { g.gain.setValueAtTime(lvl, Math.max(start, start + len - 0.3)); g.gain.linearRampToValueAtTime(0, start + len); }
+    src.connect(g); g.connect(master); src.start(start); src.stop(start + len + 0.05);
+    return len;
   }
   function resume() { if (ac && ac.state === 'suspended') { const p = ac.resume(); if (p && p.catch) p.catch(() => {}); } }
   const ok = () => !!ac && settings.sound && ac.state === 'running';
@@ -524,7 +583,9 @@ const Sound = (() => {
   }
 
   return {
-    init, resume, buildLaugh,
+    init, resume, buildLaugh, setClip,
+    hasClip: () => !!clipBuf,
+    clipReady: () => clipPending || Promise.resolve(0),
     ready: () => ok(),
     shoot() { if (!ok()) return; const t = ac.currentTime;
       tone('triangle', 240, 95, t, 0.004, 0.5, 0.2);
@@ -543,7 +604,8 @@ const Sound = (() => {
       const now = ac.currentTime;
       if (kind !== 'big' && laughBusyUntil > now) return 0;
       const start = Math.max(now + 0.02, laughBusyUntil);
-      const dur = buildLaugh(ac, master, start, kind);
+      if (settings.laughMode === 'clip' && clipUrl && !clipBuf) return 0;   // the owner's recording is still loading: stay quiet rather than switch voices
+      const dur = settings.laughMode === 'clip' && clipBuf ? playClip(start, kind) : buildLaugh(ac, master, start, kind);
       laughBusyUntil = start + dur;
       return start - now + dur;
     },
@@ -564,6 +626,7 @@ const Sound = (() => {
     fanfare() { if (!ok()) return; const t = ac.currentTime; [523, 587, 659, 784, 1047].forEach((f, i) => tone('triangle', f, f, t + i * 0.13, 0.01, 0.28, i === 4 ? 0.7 : 0.16)); }
   };
 })();
+if (storedClip) Sound.setClip(storedClip);                 // decoded on the first tap, when sound can start
 
 /* ================= view & sprites ================= */
 let view = { w: 1, h: 1, dpr: 1, scale: 1, ox: 0, oy: 0 };
@@ -965,6 +1028,9 @@ function startGame() {
   ui.hud.hidden = false; updateHud(true);
   banner('Ready…', 'Tap where the arrow should land', 1.05);
   game.laughT = Sound.laugh('taunt');                     // Ravan dares the player
+  if (!game.laughT && settings.laughMode === 'clip') {      // the recording is still loading after a reload: taunt as soon as it is ready
+    Sound.clipReady().then(() => { if (game.phase === 'countdown' || game.phase === 'play') game.laughT = Sound.laugh('taunt') || game.laughT; });
+  }
 }
 
 function pauseGame() {
@@ -1548,6 +1614,8 @@ function openSettings() {
   $('setStall').value = settings.stall; $('setPrize').value = settings.prize;
   $('setArrows').value = String(settings.arrows); $('setTime').value = String(settings.time);
   $('setDiff').value = settings.diff; $('setSound').checked = settings.sound;
+  $(settings.laughMode === 'clip' ? 'laughClip' : 'laughSynth').checked = true;
+  setLaughStatus();
   resetArmed = 0; $('resetBoardBtn').textContent = 'Clear leaderboard';
   showOnly(ui.settings);
   setTimeout(() => $('setStall').focus({ preventScroll: true }), 30);
@@ -1559,8 +1627,38 @@ function readSettings() {
   settings.time = TIME_CHOICES.includes(+$('setTime').value) ? +$('setTime').value : DEFAULTS.time;
   settings.diff = Object.prototype.hasOwnProperty.call(DIFF, $('setDiff').value) ? $('setDiff').value : DEFAULTS.diff;
   settings.sound = $('setSound').checked;
+  const mode = $('laughClip').checked ? 'clip' : 'synth';
+  settings.laughMode = mode === 'clip' && !storedClip ? 'synth' : mode;
+  if (mode === 'clip' && !storedClip) { $('laughSynth').checked = true; setLaughStatus('Choose a recording first.'); }
   saveSettings();
 }
+function setLaughStatus(msg) {
+  $('laughStatus').textContent = msg || (storedClip
+    ? (settings.laughMode === 'clip' ? 'Your recording plays for every laugh. It is saved on this device.' : 'Your recording is saved. Pick "My recording" to use it.')
+    : 'Record the laugh on a phone, then choose the file here. Keep it under about 8 seconds.');
+}
+function readFileAsDataUrl(f) {
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(f); });
+}
+for (const id of ['laughSynth', 'laughClip']) $(id).addEventListener('change', () => { readSettings(); if (storedClip) setLaughStatus(); });
+$('laughFile').addEventListener('change', async () => {
+  const input = $('laughFile'), f = input.files && input.files[0];
+  input.value = '';
+  if (!f) return;
+  if (f.size > CLIP_MAX_BYTES) { setLaughStatus('That file is too big. Choose a recording under 1 MB. A laugh of a few seconds is plenty.'); return; }
+  setLaughStatus('Loading the recording…');
+  Sound.init(); Sound.resume();
+  let url, dur;
+  try { url = await readFileAsDataUrl(f); dur = await Sound.setClip(url); }
+  catch (e) { if (storedClip) Sound.setClip(storedClip); setLaughStatus("That file couldn't be played. Try an MP3 or M4A recording."); return; }
+  if (!dur) { setLaughStatus('Sound is not available in this browser.'); return; }
+  let kept = true;
+  try { localStorage.setItem(KEY_CLIP, url); } catch (e) { kept = false; }
+  storedClip = url;
+  settings.laughMode = 'clip'; $('laughClip').checked = true; settings.sound = true; $('setSound').checked = true; saveSettings();
+  setLaughStatus(`Using "${f.name}" (${dur.toFixed(1)} seconds).` + (kept ? ' Saved on this device.' : ' This browser could not save it, so choose it again after a reload.'));
+  const d = Sound.laugh('big'); if (d) game.laughT = d;
+});
 function closeSettings() { readSettings(); showTitle(); setTimeout(() => $('settingsBtn').focus({ preventScroll: true }), 30); }
 let resetArmed = 0;
 $('settingsBtn').addEventListener('click', openSettings);
@@ -1585,7 +1683,9 @@ $('testLaughBtn').addEventListener('click', () => {
   readSettings();
   if (!settings.sound) { $('setSound').checked = true; readSettings(); }
   Sound.init(); Sound.resume();
-  setTimeout(() => { const d = Sound.laugh('big'); if (d) game.laughT = d; }, 60);   // give a fresh audio context a moment to start
+  const play = () => { const d = Sound.laugh('big'); if (d) game.laughT = d; };
+  if (settings.laughMode === 'clip' && storedClip && !Sound.hasClip()) Sound.setClip(storedClip).then(play, play);
+  else setTimeout(play, 60);                               // give a fresh audio context a moment to start
 });
 
 /* ================= full screen & keep awake ================= */
@@ -1622,7 +1722,7 @@ showTitle();
 keepAwake();
 game.rocketT = 1.2;
 requestAnimationFrame((t) => { lastFrame = t; frame(t); });
-window.__ravan = { game, view, settings: () => settings, board: () => board, shoot: (x, y) => shoot(x, y, false), headPos, toWorld, buildLaugh: Sound.buildLaugh };
+window.__ravan = { game, view, settings: () => settings, board: () => board, shoot: (x, y) => shoot(x, y, false), headPos, toWorld, buildLaugh: Sound.buildLaugh, hasClip: Sound.hasClip };
 })();
 </script>
 
