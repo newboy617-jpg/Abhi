@@ -24,7 +24,7 @@
   --leaf: #2f9e5b;
   --paper: #fff4e0;
   --muted: #d9c6dd;
-  --panel: rgba(22, 12, 42, 0.9);
+  --panel: rgba(22, 12, 42, 0.94);
   --line: rgba(255, 182, 39, 0.45);
   --line-soft: rgba(255, 182, 39, 0.16);
   --shadow: rgba(0, 0, 0, 0.55);
@@ -33,6 +33,7 @@
   --font-body: 'Mukta', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
   font-size: clamp(14px, 1.55vmin, 30px);
 }
+@media (min-width: 1600px) and (min-height: 860px) { :root { font-size: 1.9vmin; } }
 [hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
@@ -122,8 +123,6 @@ button { cursor: pointer; }
   border: 1px solid var(--line);
   border-radius: 0.5rem;
   box-shadow: 0 1.5rem 4rem var(--shadow), 0 0 3rem rgba(255, 122, 26, 0.12);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
 }
 /* toran bunting along the top edge */
 .panel::before {
@@ -311,12 +310,12 @@ p { margin: 0; }
 <section id="settingsScreen" class="screen" aria-labelledby="settingsHeading" hidden>
   <form class="panel settings-panel" id="settingsForm" autocomplete="off">
     <h2 id="settingsHeading">Stall settings</h2>
-    <p class="muted">Changes save on this device straight away.</p>
+    <p class="muted">Changes save on this device straight away. Arrows, time and difficulty change how hard the game is, so clear the leaderboard if a prize is running.</p>
     <label for="setStall">Stall name<input class="field" id="setStall" maxlength="40"></label>
     <label for="setPrize">Prize line<input class="field" id="setPrize" maxlength="60"></label>
     <div class="settings-grid">
       <label for="setArrows">Arrows per game
-        <select class="field" id="setArrows"><option>10</option><option>12</option><option>15</option><option>18</option><option>20</option><option>25</option></select>
+        <select class="field" id="setArrows"><option>12</option><option>15</option><option>18</option><option>20</option><option>25</option></select>
       </label>
       <label for="setTime">Time limit
         <select class="field" id="setTime"><option value="30">30 sec</option><option value="45">45 sec</option><option value="60">60 sec</option><option value="90">90 sec</option><option value="120">120 sec</option></select>
@@ -359,7 +358,7 @@ const HB = { x: -50, y: -88, w: 100, h: 134 };     // head sprite box (size 1, f
 const NAVEL = { x: 0, y: 418, r: 30 };
 const EB = { x: -474, y: 222, w: 948, h: 488 };    // effigy sprite box (x relative to centre, y in world)
 const DIFF = { easy: { amp: 0.7, spd: 0.75 }, normal: { amp: 1, spd: 1 }, hard: { amp: 1.2, spd: 1.3 } };
-const ARROW_CHOICES = [10, 12, 15, 18, 20, 25];
+const ARROW_CHOICES = [12, 15, 18, 20, 25];          // at least 11 targets, so never fewer than 12
 const TIME_CHOICES = [30, 45, 60, 90, 120];
 const DEFAULTS = { stall: 'Dandiya Night Games', prize: 'Top score tonight wins a prize!', arrows: 15, time: 60, diff: 'normal', sound: true };
 const KEY_SET = 'ravan10.settings', KEY_BOARD = 'ravan10.board';
@@ -378,7 +377,8 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 /* ================= storage ================= */
 const store = {
   get(key, fallback) { try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch (e) { return fallback; } },
-  set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* storage blocked: keep going without it */ } }
+  set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* storage blocked: keep going without it */ } },
+  ok: (() => { try { localStorage.setItem('ravan10.probe', '1'); localStorage.removeItem('ravan10.probe'); return true; } catch (e) { return false; } })()
 };
 function loadSettings() {
   const raw = store.get(KEY_SET, {});
@@ -402,6 +402,11 @@ let settings = loadSettings();
 let board = loadBoard();
 const saveSettings = () => store.set(KEY_SET, settings);
 const saveBoard = () => store.set(KEY_BOARD, board);
+const syncBoard = () => { if (store.ok) board = loadBoard(); };   // pick up scores saved in another tab; keep memory if storage is blocked
+addEventListener('storage', (e) => {
+  if (e.key === KEY_BOARD) { board = loadBoard(); if (game.phase === 'title') renderBoard($('titleBoard'), null, 5); }
+  if (e.key === KEY_SET) { settings = loadSettings(); if (game.phase === 'title') applySettingsToUi(); }
+});
 
 /* ================= sound (synthesised, no files) ================= */
 const Sound = (() => {
@@ -861,6 +866,7 @@ function showOnly(screen) {
 
 function showTitle() {
   clearTimeout(idleTimer);
+  syncBoard();
   game.phase = 'title';
   resetGame();
   ui.hud.hidden = true; hideBanner();
@@ -981,7 +987,7 @@ function nearestAlive(x) {
 function win() {
   game.won = true; game.navelActive = false; game.hits++;
   // bonuses use a fixed 15-arrow / 60-second baseline so stall settings can't inflate the shared board
-  game.arrowBonus = Math.max(0, 15 - game.shots) * 75;
+  game.arrowBonus = Math.max(0, Math.min(settings.arrows, 15) - game.shots) * 75;
   game.timeBonus = Math.max(0, Math.min(Math.ceil(game.timeLeft), 60 - Math.floor(game.elapsed))) * 10;
   game.score += 500 + game.arrowBonus + game.timeBonus;
   game.arrows = []; game.marks = [];
@@ -1004,6 +1010,7 @@ function fail(reason) {
 
 function showEnd() {
   game.phase = 'end';
+  syncBoard();
   ui.hud.hidden = true;
   const won = game.won, pct = game.shots ? Math.round((game.hits / game.shots) * 100) : 0;
   $('endEyebrow').textContent = won ? 'Ravan burnt' : 'Ravan survives';
@@ -1033,6 +1040,7 @@ function showEnd() {
 }
 
 function saveScore(name) {
+  syncBoard();                                         // merge onto whatever another tab saved meanwhile
   const clean = (name || '').replace(/\s+/g, ' ').trim().slice(0, 12) || 'Player';
   const entry = { id: `${Date.now()}-${Math.round(Math.random() * 1e6)}`, n: clean, s: game.score, h: game.headsDown, w: game.won, d: settings.diff };
   board.push(entry);
@@ -1524,6 +1532,7 @@ addEventListener('resize', queueResize);
 addEventListener('orientationchange', queueResize);
 resize();
 showTitle();
+keepAwake();
 game.rocketT = 1.2;
 requestAnimationFrame((t) => { lastFrame = t; frame(t); });
 window.__ravan = { game, view, settings: () => settings, board: () => board, shoot: (x, y) => shoot(x, y, false), headPos, toWorld };

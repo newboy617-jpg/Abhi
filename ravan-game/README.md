@@ -56,7 +56,7 @@ Press **Settings** on the start screen to change:
 
 - **Stall name** shown above the title.
 - **Prize line**, for example "Top score tonight wins a chocolate box".
-- **Arrows per game**: 10, 12, 15, 18, 20 or 25.
+- **Arrows per game**: 12, 15, 18, 20 or 25. There are 11 targets, so 12 is the minimum.
 - **Time limit**: 30 to 120 seconds.
 - **Difficulty**: Easy for children, Normal, or Hard for repeat players.
 - **Sound effects** on or off. The `M` key also toggles sound.
