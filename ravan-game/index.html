@@ -324,7 +324,10 @@ p { margin: 0; }
         <select class="field" id="setDiff"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select>
       </label>
     </div>
-    <label class="check" for="setSound"><input type="checkbox" id="setSound"> Sound effects</label>
+    <div class="row">
+      <label class="check" for="setSound"><input type="checkbox" id="setSound"> Sound effects</label>
+      <button type="button" class="btn" id="testLaughBtn">Play Ravan's laugh</button>
+    </div>
     <div class="row">
       <button type="button" class="btn" id="resetBoardBtn">Clear leaderboard</button>
       <button type="submit" class="btn-primary" id="settingsDone">Done</button>
@@ -410,7 +413,7 @@ addEventListener('storage', (e) => {
 
 /* ================= sound (synthesised, no files) ================= */
 const Sound = (() => {
-  let ac = null, master = null, noiseBuf = null, lastFw = 0;
+  let ac = null, master = null, noiseBuf = null, lastFw = 0, laughBusyUntil = 0;
   function init() {
     if (ac) return;
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -446,8 +449,83 @@ const Sound = (() => {
     env(g, t, attack, peak, decay); n.connect(f); f.connect(g); g.connect(master);
     n.start(t, Math.random() * 0.5); n.stop(t + attack + decay + 0.05);
   }
+  /* ---- Ravan's laugh: a deep formant-synthesised "Mwa-ha-ha-ha-HAAA" with a Ramlila loudspeaker echo ---- */
+  const drive = (() => { const n = 1024, cv = new Float32Array(n); for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; cv[i] = Math.tanh(2.2 * x) / Math.tanh(2.2); } return cv; })();
+  const perCtx = new WeakMap();
+  function kit(c, dest) {
+    let k = perCtx.get(c);
+    if (k) return k;
+    const nb = c.createBuffer(1, c.sampleRate, c.sampleRate), nd = nb.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    const send = c.createGain();
+    // open-ground reverb from decaying, darkened noise
+    const len = Math.floor(c.sampleRate * 2.2), ir = c.createBuffer(2, len, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); let lp = 0; for (let i = 0; i < len; i++) { const t = i / c.sampleRate; lp += (Math.random() * 2 - 1 - lp) * 0.3; d[i] = lp * Math.exp(-t / 0.5) * Math.min(1, t / 0.01); } }
+    const conv = c.createConvolver(); conv.buffer = ir;
+    const wet = c.createGain(); wet.gain.value = 0.32;
+    send.connect(conv); conv.connect(wet); wet.connect(dest);
+    // the loudspeaker echo bouncing across the maidan
+    const dl = c.createDelay(1); dl.delayTime.value = 0.37;
+    const horn = c.createBiquadFilter(); horn.type = 'bandpass'; horn.frequency.value = 1200; horn.Q.value = 0.6;
+    const fb = c.createGain(); fb.gain.value = 0.27;
+    const echo = c.createGain(); echo.gain.value = 0.36;
+    send.connect(dl); dl.connect(horn); horn.connect(fb); fb.connect(dl); horn.connect(echo); echo.connect(dest);
+    k = { nb, send }; perCtx.set(c, k); return k;
+  }
+  function buildLaugh(c, dest, t0, kind) {
+    const big = kind === 'big', n = big ? 7 : 4, base = big ? 112 : 124;
+    const plan = []; let t = t0;
+    for (let i = 0; i < n; i++) {
+      const first = i === 0, last = i === n - 1;
+      const dur = last ? (big ? 0.95 : 0.5) : first ? 0.26 : 0.15;
+      const f0 = base * (first ? 1.18 : last ? 1.12 : 1 - i * 0.02) * (0.97 + Math.random() * 0.06);
+      plan.push({ t, dur, f0, f1: f0 * (last ? 0.56 : first ? 0.8 : 0.82), first, last });
+      t += dur + (last ? 0 : first ? 0.09 : 0.065);
+    }
+    const end = t + 0.05, K = kit(c, dest);
+    const glott = c.createOscillator(); glott.type = 'sawtooth';           // vocal folds
+    const sub = c.createOscillator(); sub.type = 'triangle';               // an octave below: the demon in the voice
+    const vib = c.createOscillator(); vib.frequency.value = 5.6;
+    const vibAmt = c.createGain(); vibAmt.gain.value = 3;
+    vib.connect(vibAmt); vibAmt.connect(glott.frequency);
+    const subAmt = c.createGain(); subAmt.gain.value = 0.55;
+    const voice = c.createGain(); voice.gain.value = 0;
+    const breath = c.createBufferSource(); breath.buffer = K.nb; breath.loop = true;
+    const breathAmt = c.createGain(); breathAmt.gain.value = 0;
+    const throat = c.createGain();
+    glott.connect(voice); sub.connect(subAmt); subAmt.connect(voice); voice.connect(throat);
+    breath.connect(breathAmt); breathAmt.connect(throat);
+    const mouth = c.createGain();
+    for (const [f, q, g] of [[700, 6, 1], [1150, 8, 0.5], [2450, 12, 0.2], [3300, 14, 0.07]]) {   // formants of an open "aa"
+      const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+      const gg = c.createGain(); gg.gain.value = g * 5;
+      throat.connect(bp); bp.connect(gg); gg.connect(mouth);
+    }
+    const chest = c.createBiquadFilter(); chest.type = 'lowpass'; chest.frequency.value = 320;
+    const chestAmt = c.createGain(); chestAmt.gain.value = 0.6;
+    throat.connect(chest); chest.connect(chestAmt); chestAmt.connect(mouth);
+    const grit = c.createWaveShaper(); grit.curve = drive; grit.oversample = '2x';
+    const out = c.createGain(); out.gain.value = big ? 0.6 : 0.5;
+    mouth.connect(grit); grit.connect(out); out.connect(dest); out.connect(K.send);
+    for (const s of plan) {
+      glott.frequency.setValueAtTime(s.f0, s.t); glott.frequency.exponentialRampToValueAtTime(s.f1, s.t + s.dur);
+      sub.frequency.setValueAtTime(s.f0 / 2, s.t); sub.frequency.exponentialRampToValueAtTime(s.f1 / 2, s.t + s.dur);
+      const peak = s.first ? 0.75 : 0.9, on = s.t + (s.first ? 0 : 0.035), rise = s.first ? 0.06 : 0.02;
+      if (!s.first) {                                                       // the breathy "h" before each "aa"
+        breathAmt.gain.setValueAtTime(0, s.t); breathAmt.gain.linearRampToValueAtTime(0.45, s.t + 0.015);
+        breathAmt.gain.linearRampToValueAtTime(0.08, s.t + 0.05); breathAmt.gain.linearRampToValueAtTime(0, s.t + s.dur);
+      }
+      voice.gain.setValueAtTime(0, on); voice.gain.linearRampToValueAtTime(peak, on + rise);
+      voice.gain.setValueAtTime(peak, s.t + s.dur * (s.last ? 0.4 : 0.5)); voice.gain.linearRampToValueAtTime(0, s.t + s.dur);
+      if (s.last) { vibAmt.gain.setValueAtTime(3, s.t); vibAmt.gain.linearRampToValueAtTime(9, s.t + s.dur); }
+    }
+    for (const src of [glott, sub, vib, breath]) { src.start(t0); src.stop(end); }
+    return end - t0;
+  }
+
   return {
-    init, resume,
+    init, resume, buildLaugh,
+    ready: () => ok(),
     shoot() { if (!ok()) return; const t = ac.currentTime;
       tone('triangle', 240, 95, t, 0.004, 0.5, 0.2);
       hiss('bandpass', 700, 1.2, t, 0.03, 0.22, 0.3, 3200); },
@@ -459,15 +537,16 @@ const Sound = (() => {
     thunk() { if (!ok()) return; const t = ac.currentTime;
       tone('sine', 120, 70, t, 0.003, 0.5, 0.14); hiss('lowpass', 900, 0.8, t, 0.002, 0.25, 0.08); },
     whiff() { if (!ok()) return; const t = ac.currentTime; hiss('bandpass', 2400, 2, t, 0.02, 0.12, 0.25, 600); },
-    laugh(times = 3) { if (!ok()) return; const t0 = ac.currentTime;
-      for (let k = 0; k < times; k++) {
-        const t = t0 + k * 0.17;
-        const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
-        o.type = 'sawtooth'; o.frequency.setValueAtTime(200 - k * 10, t); o.frequency.exponentialRampToValueAtTime(128 - k * 8, t + 0.14);
-        f.type = 'bandpass'; f.frequency.value = 780; f.Q.value = 2.5;
-        env(g, t, 0.012, 0.6, 0.12); o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t + 0.18);
-        hiss('bandpass', 1900, 1.5, t - 0.02 < t0 ? t0 : t - 0.02, 0.008, 0.12, 0.05);
-      } },
+    // returns how long Ravan will be laughing (seconds), or 0 when silent; taunts never stack, a big laugh queues behind one
+    laugh(kind = 'taunt') {
+      if (!ok()) return 0;
+      const now = ac.currentTime;
+      if (kind !== 'big' && laughBusyUntil > now) return 0;
+      const start = Math.max(now + 0.02, laughBusyUntil);
+      const dur = buildLaugh(ac, master, start, kind);
+      laughBusyUntil = start + dur;
+      return start - now + dur;
+    },
     tick() { if (!ok()) return; tone('square', 1100, 1100, ac.currentTime, 0.002, 0.08, 0.04); },
     roar() { if (!ok()) return; const t = ac.currentTime;
       hiss('lowpass', 260, 1, t, 0.25, 0.7, 0.7); tone('sawtooth', 75, 55, t, 0.2, 0.25, 0.7); },
@@ -819,7 +898,7 @@ function resetGame() {
     timeLeft: settings.time, elapsed: 0, cooldown: 0, headsDown: 0, navelActive: false, won: false, failReason: '',
     arrowBonus: 0, timeBonus: 0, falling: [], arrows: [], stuck: [], misses: [], marks: [], texts: [],
     fire: [], smoke: [], sparks: [], paper: [], sink: 0, tilt: 0, char: 0, burning: false, burnT: 0,
-    shake: 0, flash: 0, laughT: 0, stringT: 0, lastTick: Math.ceil(settings.time), savedId: null
+    shake: 0, flash: 0, laughT: 0, stringT: 0, lastTick: Math.ceil(settings.time), savedId: null, attractT: 14
   });
   game.heads = HEAD_X.map((_, i) => ({ i, alive: true }));
 }
@@ -885,6 +964,7 @@ function startGame() {
   showOnly(null);
   ui.hud.hidden = false; updateHud(true);
   banner('Ready…', 'Tap where the arrow should land', 1.05);
+  game.laughT = Sound.laugh('taunt');                     // Ravan dares the player
 }
 
 function pauseGame() {
@@ -971,11 +1051,11 @@ function miss(a) {
     Sound.whiff();
   }
   addText(a.tx, a.ty - 30, 'Miss', '#d9c6dd', 26);
-  if (T - game.lastLaugh > 1.6) {
-    game.lastLaugh = T; game.laughT = 0.9;
+  if (T - game.lastLaugh > 2.2) {
+    game.lastLaugh = T;
     const c = headPos(game.heads.find((h) => h.alive) ? nearestAlive(a.tx) : 4);
     addText(c.x, c.y - 100, 'Ha ha ha!', '#ff7a1a', 34);
-    Sound.laugh(3);
+    game.laughT = Math.max(0.9, Sound.laugh('taunt'));
   }
 }
 function nearestAlive(x) {
@@ -1001,11 +1081,10 @@ function win() {
 
 function fail(reason) {
   game.phase = 'fail'; game.phaseT = 0; game.failReason = reason; game.navelActive = false;
-  game.laughT = 2.4;
   const c = headPos(game.heads.find((h) => h.alive) ? nearestAlive(game.effX) : 4);
   if (game.heads.some((h) => h.alive)) addText(c.x, c.y - 100, 'Ha ha ha ha!', '#ff7a1a', 44);
   banner(reason === 'time' ? "Time's up!" : 'Out of arrows!', 'Ravan survives this time', 2.2);
-  Sound.laugh(3); setTimeout(() => Sound.laugh(4), 650);
+  game.laughT = Math.max(2.4, Sound.laugh('big'));
 }
 
 function showEnd() {
@@ -1163,6 +1242,8 @@ function update(dt) {
   } else if (game.phase === 'title') {
     game.rocketT -= dt;
     if (game.rocketT <= 0) { launchRocket(); game.rocketT = rand(2.2, 3.6); }
+    game.attractT -= dt;                                   // an occasional laugh pulls passers-by to the stall
+    if (game.attractT <= 0) { game.attractT = rand(24, 34); const d = Sound.laugh('taunt'); if (d) game.laughT = d; }
   }
 
   // arrows
@@ -1500,6 +1581,12 @@ function toggleSound() {
   if (settings.sound) { Sound.init(); Sound.resume(); }
 }
 $('soundBtn').addEventListener('click', toggleSound);
+$('testLaughBtn').addEventListener('click', () => {
+  readSettings();
+  if (!settings.sound) { $('setSound').checked = true; readSettings(); }
+  Sound.init(); Sound.resume();
+  setTimeout(() => { const d = Sound.laugh('big'); if (d) game.laughT = d; }, 60);   // give a fresh audio context a moment to start
+});
 
 /* ================= full screen & keep awake ================= */
 const docEl = document.documentElement;
@@ -1535,7 +1622,7 @@ showTitle();
 keepAwake();
 game.rocketT = 1.2;
 requestAnimationFrame((t) => { lastFrame = t; frame(t); });
-window.__ravan = { game, view, settings: () => settings, board: () => board, shoot: (x, y) => shoot(x, y, false), headPos, toWorld };
+window.__ravan = { game, view, settings: () => settings, board: () => board, shoot: (x, y) => shoot(x, y, false), headPos, toWorld, buildLaugh: Sound.buildLaugh };
 })();
 </script>
 

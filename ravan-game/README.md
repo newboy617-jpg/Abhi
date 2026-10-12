@@ -60,6 +60,7 @@ Press **Settings** on the start screen to change:
 - **Time limit**: 30 to 120 seconds.
 - **Difficulty**: Easy for children, Normal, or Hard for repeat players.
 - **Sound effects** on or off. The `M` key also toggles sound.
+- **Play Ravan's laugh** to test the speakers before the crowd arrives.
 - **Clear leaderboard** at the start of each night. Tap it twice to confirm.
 
 Settings and scores are saved in the browser on that device only.
@@ -81,5 +82,7 @@ the start screen after 45 seconds, so the next player always sees the leaderboar
 - Charge 20 to 30 rupees per game and give a prize for the top score each hour.
 - Keep the leaderboard visible between games. A score to beat brings people back.
 - Use Easy for small children and Normal or Hard once the crowd gets competitive.
-- Turn the volume up. The bow twang, Ravan's laugh and the fireworks pull a crowd.
+- Turn the volume up. Ravan laughs when a game starts, when a player misses and when
+  a player loses. Between games he laughs every half minute or so to pull in passers-by.
+  The sound starts after the first tap on the screen, because browsers block sound until then.
 - Keep the device plugged in. The game asks the screen to stay awake while it runs.
