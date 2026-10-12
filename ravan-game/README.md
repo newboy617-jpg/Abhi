@@ -26,6 +26,53 @@ the same baseline whatever the stall settings, so changing settings mid-evening 
 not inflate scores. The top 10 scores stay on the leaderboard, tagged with the
 difficulty when it is not Normal.
 
+## Ravan talks to each player in their language
+
+After **Play**, each player types their name and picks their state. Ravan then
+speaks to them by name in that state's language. Where a state has several
+languages, the player taps one. For example, Uttar Pradesh offers Hindi, Bhojpuri
+and Awadhi, and Bihar offers Bhojpuri, Maithili, Magahi and Hindi. English is
+always offered too.
+
+| Moment | What Ravan does |
+|---|---|
+| Game starts | Dares the player by name |
+| Every other miss | Mocks the shot |
+| Second, fifth and eighth head | Boasts that he has more heads |
+| All ten heads gone | Gloats about the nectar in his navel |
+| Player loses | Taunts them by name, then laughs |
+| Player wins | Admits defeat |
+| Start screen | Shouts a dare in a different language every minute or so |
+
+His words show as a large subtitle in the player's script, with a short English line
+underneath so the crowd can follow. Scores are saved under the player's name, and the
+leaderboard shows their state, for example "Priya · BR".
+
+**Languages:** Hindi, Bhojpuri, Awadhi, Maithili, Magahi, Haryanvi, Rajasthani
+(Marwari), Chhattisgarhi, Punjabi, Urdu, Bengali, Odia, Assamese, Nepali, Marathi,
+Gujarati, Konkani, Tamil, Telugu, Kannada, Malayalam and English.
+
+Each language was written by one translator and then checked and corrected by a
+separate native-language reviewer. Before the event, ask a student from each state
+to read their language's lines. Magahi needs this most. Bhojpuri, Awadhi, Maithili,
+Haryanvi, Rajasthani, Chhattisgarhi, Odia, Assamese, Nepali, Konkani, Telugu, Kannada
+and Malayalam should get a quick look too. To fix a line, open **Settings**, press
+**Edit Ravan's lines**, pick the language, change the text and press **Save**. Put
+each line on its own row and write `{name}` where the player's name goes.
+
+**Hearing Ravan speak.** Ravan reads his lines aloud with the device's own
+text-to-speech voices, made as deep as each voice allows. Settings lists which
+languages the device can speak. Bhojpuri and the other Hindi-belt dialects use the
+Hindi voice. Languages with no voice on the device show as subtitles only.
+
+- **Windows:** open Settings, then Time & language, then Speech, then Add voices. Add
+  Hindi, Tamil, Telugu, Bengali and the others you need, so they work without internet.
+- **Android:** install or update Speech Services by Google and download the Indian
+  language voices in its settings.
+
+Turn **Ask each player's name and state** off in Settings to skip the form and use
+one language for everyone.
+
 ## Running it at the stall
 
 **Touch laptop or Windows tablet**
@@ -64,6 +111,8 @@ Press **Settings** on the start screen to change:
   Record the laugh on a phone (a few seconds, under 1 MB), press **Choose a recording**
   and pick the file. The game levels its volume, saves it on the device and plays it for
   every laugh. **Play Ravan's laugh** tests the speakers before the crowd arrives.
+- **Players and languages**: ask for each player's name and state, pick the language
+  used when not asking, switch Ravan's speaking voice on or off, and edit his lines.
 - **Clear leaderboard** at the start of each night. Tap it twice to confirm.
 
 Settings and scores are saved in the browser on that device only.
@@ -74,7 +123,7 @@ Settings and scores are saved in the browser on that device only.
 |---|---|
 | `F` | Full screen on or off |
 | `M` | Sound on or off |
-| `Esc` | Pause or resume a game |
+| `Esc` | Pause or resume a game, or go back from the name screen or Settings |
 | `Enter` | Start a game from the start screen or result screen |
 
 The game pauses by itself if the browser tab is hidden. The result screen returns to
