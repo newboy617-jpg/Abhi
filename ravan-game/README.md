@@ -60,7 +60,7 @@ Press **Settings** on the start screen to change:
 - **Time limit**: 30 to 120 seconds.
 - **Difficulty**: Easy for children, Normal, or Hard for repeat players.
 - **Sound effects** on or off. The `M` key also toggles sound.
-- **Ravan's laugh**: keep the built-in laugh, or choose **My recording** to use your own.
+- **Ravan's laugh**: keep the game's own laugh, or choose **Recorded laugh** to use a recording.
   Record the laugh on a phone (a few seconds, under 1 MB), press **Choose a recording**
   and pick the file. The game levels its volume, saves it on the device and plays it for
   every laugh. **Play Ravan's laugh** tests the speakers before the crowd arrives.

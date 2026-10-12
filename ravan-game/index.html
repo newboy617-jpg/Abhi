@@ -335,8 +335,8 @@ label.btn { display: inline-flex; align-items: center; box-sizing: border-box; c
     <fieldset class="laugh-set">
       <legend>Ravan's laugh</legend>
       <div class="row">
-        <label class="check" for="laughSynth"><input type="radio" name="laughMode" value="synth" id="laughSynth"> Built-in laugh</label>
-        <label class="check" for="laughClip"><input type="radio" name="laughMode" value="clip" id="laughClip"> My recording</label>
+        <label class="check" for="laughSynth"><input type="radio" name="laughMode" value="synth" id="laughSynth"> Game's own laugh</label>
+        <label class="check" for="laughClip"><input type="radio" name="laughMode" value="clip" id="laughClip"> Recorded laugh</label>
       </div>
       <div class="row">
         <input type="file" id="laughFile" class="file-pick" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus">
@@ -380,7 +380,8 @@ const EB = { x: -474, y: 222, w: 948, h: 488 };    // effigy sprite box (x relat
 const DIFF = { easy: { amp: 0.7, spd: 0.75 }, normal: { amp: 1, spd: 1 }, hard: { amp: 1.2, spd: 1.3 } };
 const ARROW_CHOICES = [12, 15, 18, 20, 25];          // at least 11 targets, so never fewer than 12
 const TIME_CHOICES = [30, 45, 60, 90, 120];
-const DEFAULTS = { stall: 'Dandiya Night Games', prize: 'Top score tonight wins a prize!', arrows: 15, time: 60, diff: 'normal', sound: true, laughMode: 'synth' };
+const BUILTIN_CLIP = ((u) => (u.startsWith('data:audio/') ? u : ''))('__LAUGH_CLIP__');   // filled in only for a stall copy built with a recording
+const DEFAULTS = { stall: 'Dandiya Night Games', prize: 'Top score tonight wins a prize!', arrows: 15, time: 60, diff: 'normal', sound: true, laughMode: BUILTIN_CLIP ? 'clip' : 'synth' };
 const KEY_SET = 'ravan10.settings', KEY_BOARD = 'ravan10.board', KEY_CLIP = 'ravan10.laughClip';
 const CLIP_MAX_BYTES = 1024 * 1024;                      // far more than a laugh needs, and safely inside browser storage
 const FW_COLORS = ['255,182,39', '255,90,60', '120,230,140', '110,190,255', '255,120,220', '255,244,224'];
@@ -421,8 +422,9 @@ function loadBoard() {
     .sort((a, b) => b.s - a.s).slice(0, 10);
 }
 let settings = loadSettings();
-let storedClip = null;
-try { storedClip = localStorage.getItem('ravan10.laughClip'); } catch (e) { storedClip = null; }
+let ownClip = null;                                      // a recording the owner picked on this device
+try { ownClip = localStorage.getItem('ravan10.laughClip'); } catch (e) { ownClip = null; }
+let storedClip = ownClip || BUILTIN_CLIP || null;
 let board = loadBoard();
 const saveSettings = () => store.set(KEY_SET, settings);
 const saveBoard = () => store.set(KEY_BOARD, board);
@@ -1633,9 +1635,12 @@ function readSettings() {
   saveSettings();
 }
 function setLaughStatus(msg) {
-  $('laughStatus').textContent = msg || (storedClip
-    ? (settings.laughMode === 'clip' ? 'Your recording plays for every laugh. It is saved on this device.' : 'Your recording is saved. Pick "My recording" to use it.')
-    : 'Record the laugh on a phone, then choose the file here. Keep it under about 8 seconds.');
+  const using = settings.laughMode === 'clip';
+  $('laughStatus').textContent = msg || (ownClip
+    ? (using ? 'Your chosen recording plays for every laugh. It is saved on this device.' : 'Your recording is saved. Pick "Recorded laugh" to use it.')
+    : BUILTIN_CLIP
+      ? (using ? 'The recording built into this copy plays for every laugh. Choose a different file to replace it.' : 'Pick "Recorded laugh" to use the recording built into this copy.')
+      : 'Record the laugh on a phone, then choose the file here. Keep it under about 8 seconds.');
 }
 function readFileAsDataUrl(f) {
   return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(f); });
@@ -1650,11 +1655,11 @@ $('laughFile').addEventListener('change', async () => {
   Sound.init(); Sound.resume();
   let url, dur;
   try { url = await readFileAsDataUrl(f); dur = await Sound.setClip(url); }
-  catch (e) { if (storedClip) Sound.setClip(storedClip); setLaughStatus("That file couldn't be played. Try an MP3 or M4A recording."); return; }
+  catch (e) { if (storedClip) Sound.setClip(storedClip).catch(() => {}); setLaughStatus("That file couldn't be played. Try an MP3 or M4A recording."); return; }
   if (!dur) { setLaughStatus('Sound is not available in this browser.'); return; }
   let kept = true;
   try { localStorage.setItem(KEY_CLIP, url); } catch (e) { kept = false; }
-  storedClip = url;
+  storedClip = ownClip = url;
   settings.laughMode = 'clip'; $('laughClip').checked = true; settings.sound = true; $('setSound').checked = true; saveSettings();
   setLaughStatus(`Using "${f.name}" (${dur.toFixed(1)} seconds).` + (kept ? ' Saved on this device.' : ' This browser could not save it, so choose it again after a reload.'));
   const d = Sound.laugh('big'); if (d) game.laughT = d;
