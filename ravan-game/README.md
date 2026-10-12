@@ -20,8 +20,11 @@ Each game has 15 arrows and 60 seconds by default. Ravan slows down at each end 
 his sway, which is the best moment to shoot.
 
 **Scoring.** A head is worth 100 points, plus 25 more for each hit in a row (up to
-+100). The navel is worth 500. A player who burns Ravan also gets 75 points per
-unused arrow and 10 points per second left. The top 10 scores stay on the leaderboard.
++100). The navel is worth 500. A player who burns Ravan also gets 75 points for each
+arrow fewer than 15 used and 10 points for each second under 60. These bonuses use
+the same baseline whatever the stall settings, so changing settings mid-evening does
+not inflate scores. The top 10 scores stay on the leaderboard, tagged with the
+difficulty when it is not Normal.
 
 ## Running it at the stall
 
