@@ -93,7 +93,20 @@ of a video and strip away background music and noise first. It runs on your own 
 using Resemble AI's open-source [Chatterbox](https://github.com/resemble-ai/chatterbox) models
 (MIT licence), so recordings never leave your machine.
 
-### Install
+### Install on a Mac (one step)
+
+On a Mac with Apple Silicon (M1 or newer), open **Terminal** (press Cmd+Space, type
+`Terminal`, press Enter), paste this line and press Enter:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/newboy617-jpg/Abhi/claude/admiring-thompson-xh1iz2/install-mac.sh | bash
+```
+
+It installs everything into a `VoiceClone` folder in your home folder (no admin password
+needed), puts a **Voice Clone** shortcut on your Desktop and opens the app in your browser.
+After that, just double-click **Voice Clone** on your Desktop. Run the same line again to update.
+
+### Install on Windows or Linux
 
 The voice models need PyTorch, which is large, so it has its own requirements file. A separate
 virtual environment is a good idea:
@@ -111,8 +124,7 @@ pip install -r requirements.txt    # only if you also want Jarvis in this enviro
   (the default Windows build only uses the CPU). On Linux the GPU build is the default, and on
   Apple Silicon Macs the GPU is used automatically.
 - It also runs on a normal CPU, just more slowly.
-- To read videos and formats like m4a, install **ffmpeg**: Windows `winget install ffmpeg`,
-  macOS `brew install ffmpeg`, Linux `sudo apt install ffmpeg`.
+- Videos and formats like m4a work out of the box (a copy of ffmpeg is installed with the app).
 - The first time you generate speech, the model (a few GB) downloads from Hugging Face.
 
 ### Clone a voice and use it

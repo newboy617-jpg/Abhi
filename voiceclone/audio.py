@@ -45,6 +45,18 @@ def parse_time(value) -> float | None:
     return seconds
 
 
+def find_ffmpeg() -> str | None:
+    """ffmpeg from your system, or the copy that comes with the imageio-ffmpeg package."""
+    if path := shutil.which("ffmpeg"):
+        return path
+    try:
+        import imageio_ffmpeg
+
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return None
+
+
 def load(path, sr: int = SAMPLE_RATE, start: float | None = None, end: float | None = None) -> np.ndarray:
     """Load the sound from any audio or video file (wav, mp3, m4a, mp4, mkv...) as mono float32.
 
@@ -60,7 +72,8 @@ def load(path, sr: int = SAMPLE_RATE, start: float | None = None, end: float | N
         if length <= 0:
             raise ValueError("The end time must be after the start time.")
 
-    if path.suffix.lower() in SOUNDFILE_TYPES or shutil.which("ffmpeg") is None:
+    ffmpeg = find_ffmpeg()
+    if path.suffix.lower() in SOUNDFILE_TYPES or ffmpeg is None:
         try:
             wav, _ = librosa.load(path, sr=sr, mono=True, offset=offset, duration=length)
         except Exception as e:
@@ -72,7 +85,7 @@ def load(path, sr: int = SAMPLE_RATE, start: float | None = None, end: float | N
         # ffmpeg pulls the soundtrack out of videos and opens every common audio format.
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "audio.wav"
-            cmd = ["ffmpeg", "-y", "-loglevel", "error", "-ss", str(offset), "-i", str(path)]
+            cmd = [ffmpeg, "-y", "-loglevel", "error", "-ss", str(offset), "-i", str(path)]
             if length is not None:
                 cmd += ["-t", str(length)]
             cmd += ["-vn", "-ac", "1", "-ar", str(sr), str(out)]

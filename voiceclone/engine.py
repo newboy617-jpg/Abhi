@@ -54,6 +54,10 @@ def split_text(text: str, max_chars: int = 250) -> list[str]:
     return chunks
 
 
+class ModelLoadError(RuntimeError):
+    pass
+
+
 def pick_device() -> str:
     import torch
 
@@ -83,7 +87,7 @@ class VoiceCloner:
             try:
                 self._models[kind] = Model.from_pretrained(device=self.device)
             except Exception as e:
-                raise RuntimeError(f"Couldn't load the {kind} voice model ({type(e).__name__}: {e}). "
+                raise ModelLoadError(f"Couldn't load the {kind} voice model ({type(e).__name__}: {e}). "
                                    "The first run needs internet to download it.") from e
         return self._models[kind]
 
@@ -112,6 +116,21 @@ class VoiceCloner:
             raise ValueError(f"Unsupported language '{language}'. Choose from: {', '.join(LANGUAGES)}")
         kind = "multilingual" if language != "en" else ("turbo" if fast else "standard")
 
+        try:
+            return self._generate(kind, voice, text, language, emotion, cfg_weight, temperature)
+        except (ModelLoadError, KeyboardInterrupt):
+            raise
+        except Exception as e:
+            if self.device != "mps":
+                raise
+            # Some operations aren't supported on Apple's GPU in every PyTorch version.
+            print(f"(The Mac's GPU couldn't run the voice model: {e}. Switching to the CPU.)")
+            self.device = "cpu"
+            self._models.clear()
+            self._prepared.clear()
+            return self._generate(kind, voice, text, language, emotion, cfg_weight, temperature)
+
+    def _generate(self, kind, voice, text, language, emotion, cfg_weight, temperature):
         model = self.model(kind)
         if self._prepared.get(kind) != voice.reference:
             model.prepare_conditionals(str(voice.reference), exaggeration=emotion)

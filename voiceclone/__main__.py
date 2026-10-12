@@ -67,7 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("name")
 
     p = sub.add_parser("ui", help="open the voice cloning web app in your browser")
-    p.add_argument("--port", type=int, default=7860)
+    p.add_argument("--port", type=int, help="default: 7860, or the next free one")
     p.add_argument("--share", action="store_true", help="also create a temporary public link")
     p.add_argument("--device", help="cuda, mps or cpu (default: best available)")
 
