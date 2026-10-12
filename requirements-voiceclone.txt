@@ -1,0 +1,6 @@
+# Voice cloning (python -m voiceclone). Large: installs PyTorch.
+chatterbox-tts
+demucs
+gradio
+sounddevice
+soundfile

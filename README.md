@@ -1,5 +1,8 @@
 # JARVIS - your personal AI assistant
 
+> This repo also includes **[Voice Clone](#voice-cloning)**: clone a voice from a short recording
+> and make it say anything, in 23 languages, and have Jarvis talk in it.
+
 A voice assistant inspired by Iron Man's JARVIS. It **wakes up and says hello when you
 walk into your room** by detecting your phone over Bluetooth (about 10 m range), then
 listens to your voice, runs quick commands on your computer and answers anything else
@@ -82,6 +85,103 @@ Leave it running on your laptop and it will greet you every time you come into y
   `cd C:\path\to\Abhi && python -m jarvis`.
 - macOS / Linux: add `cd /path/to/Abhi && python3 -m jarvis` to your login items or crontab (`@reboot`).
 
+## Voice cloning
+
+`voiceclone` copies a voice from a video or audio file (or your microphone) and then says any
+text you type in that voice, in English, Hindi or 21 other languages. It can pull the voice out
+of a video and strip away background music and noise first. It runs on your own computer
+using Resemble AI's open-source [Chatterbox](https://github.com/resemble-ai/chatterbox) models
+(MIT licence), so recordings never leave your machine.
+
+### Install
+
+The voice models need PyTorch, which is large, so it has its own requirements file. A separate
+virtual environment is a good idea:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements-voiceclone.txt
+pip install -r requirements.txt    # only if you also want Jarvis in this environment
+```
+
+- Python 3.10 to 3.13 works best.
+- **NVIDIA GPU on Windows:** first run
+  `pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124`
+  (the default Windows build only uses the CPU). On Linux the GPU build is the default, and on
+  Apple Silicon Macs the GPU is used automatically.
+- It also runs on a normal CPU, just more slowly.
+- To read videos and formats like m4a, install **ffmpeg**: Windows `winget install ffmpeg`,
+  macOS `brew install ffmpeg`, Linux `sudo apt install ffmpeg`.
+- The first time you generate speech, the model (a few GB) downloads from Hugging Face.
+
+### Clone a voice and use it
+
+```bash
+# 1. Clone: from a video, taking the voice out of the music and background noise...
+python -m voiceclone add "Abhi" --video interview.mp4 --isolate
+#    ...only using the part where they talk (here from 1:05 to 1:35)...
+python -m voiceclone add "Abhi" --video interview.mp4 --start 1:05 --end 1:35 --isolate
+#    ...from an audio file (mp3, wav, m4a, ogg...)...
+python -m voiceclone add "Abhi" --audio voice_note.m4a
+#    ...or record yourself reading a short passage (20 seconds)
+python -m voiceclone add "Abhi" --record
+#    When it's done it offers to let you type text and hear it straight away.
+
+# 2. Speak in that voice. The audio plays and is saved in output/
+python -m voiceclone say "Abhi" "Hello! This is my cloned voice speaking."
+python -m voiceclone say "Abhi" "नमस्ते, आप कैसे हैं?" --lang hi
+python -m voiceclone say "Abhi" --file speech.txt -o speech.wav   # any length of text
+
+# 3. Or give it dialogue line by line: type a line, press Enter, hear it in that voice
+python -m voiceclone talk "Abhi"
+
+python -m voiceclone list            # your saved voices
+python -m voiceclone remove "Abhi"
+```
+
+Prefer clicking to typing? `python -m voiceclone ui` opens a web app in your browser where you can
+upload a video or audio file (or record yourself), type text, tweak the style and download
+the result.
+
+**Tips for a close match**
+- Use 10-30 seconds of one person talking naturally. With a video, use `--start`/`--end` to pick
+  a part where only that person is talking (without them, the first 3 minutes are used).
+- Add `--isolate` when there's music or background noise. It uses Meta's open-source Demucs
+  model to keep just the voice (it downloads about 80 MB the first time).
+- A phone voice note recorded in a quiet room is fine. Silences are trimmed automatically.
+- The clone copies the sample's mood too, so a calm sample gives calm speech.
+
+**Style controls for `say` and `talk`**
+
+| Option | What it does |
+|---|---|
+| `--emotion 0.5` | `0.25` calm, `0.5` natural, `1.0` and up dramatic |
+| `--cfg 0.5` | `0.3` slows fast talkers down; `0` drops the accent when the voice speaks another language |
+| `--temperature 0.8` | higher is more expressive, lower is steadier |
+| `--lang hi` | speak another language: ar da de el en es fi fr he hi it ja ko ms nl no pl pt ru sv sw tr zh |
+| `--fast` | much faster English model (ignores `--emotion`) |
+
+### Make Jarvis talk in a cloned voice
+
+Clone a voice as above, then put its name in `.env`:
+
+```
+JARVIS_VOICE=Abhi
+```
+
+Jarvis uses the fast English model. A GPU keeps replies snappy; on a CPU each reply takes a few
+extra seconds. If anything goes wrong, Jarvis falls back to its normal voice.
+
+### Use it responsibly
+
+Only clone your own voice or the voice of someone who has agreed to it. Using someone's voice
+without permission to deceive people, commit fraud or harass someone is illegal in many places.
+To help with this:
+- `add` asks whose voice it is and stores that note with the voice.
+- Every generated clip carries Resemble AI's inaudible **Perth watermark**. Check any clip with
+  `python -m voiceclone check clip.wav`.
+
 ## How it works
 
 ```
@@ -91,6 +191,12 @@ jarvis/
   voice.py      microphone speech recognition + text-to-speech
   skills.py     instant local commands (time, open apps/sites, YouTube, Google)
   brain.py      Claude with web search for everything else
+voiceclone/
+  __main__.py   command line: add / say / talk / list / remove / ui / check
+  library.py    saved voices (voices/<name>/reference.wav + profile.json)
+  audio.py      reading audio/video, removing background sound, recording, playback
+  engine.py     Chatterbox voice models: picks the right one, splits long text
+  app.py        the web app
 ```
 
 Change the model with `JARVIS_MODEL` in `.env` (default `claude-opus-5`). Edit `SYSTEM_PROMPT`

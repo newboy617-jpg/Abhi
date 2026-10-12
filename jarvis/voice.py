@@ -1,5 +1,7 @@
 """Speaking (text-to-speech) and listening (speech recognition)."""
 
+import os
+
 try:
     import pyttsx3
 except ImportError:
@@ -11,8 +13,28 @@ except ImportError:
     sr = None
 
 
+def load_cloned_voice(name: str):
+    """Speak with a voice made by `python -m voiceclone` (set JARVIS_VOICE in .env)."""
+    try:
+        from voiceclone import VoiceCloner, VoiceLibrary, audio
+
+        voice = VoiceLibrary().get(name)
+        if not audio.can_play():
+            raise RuntimeError("no speakers found")
+        cloner = VoiceCloner()
+        cloner.model("turbo")  # load (and on the first run download) it now, not mid-conversation
+        return cloner, voice
+    except Exception as e:
+        print(f"(Can't use the cloned voice '{name}': {e}. Using the built-in voice.)")
+        return None
+
+
 class Voice:
     def __init__(self, use_mic: bool = True, speak_aloud: bool = True):
+        self.clone = None
+        if speak_aloud and os.environ.get("JARVIS_VOICE"):
+            self.clone = load_cloned_voice(os.environ["JARVIS_VOICE"])
+
         self.engine = None
         if speak_aloud and pyttsx3 is not None:
             try:
@@ -46,6 +68,17 @@ class Voice:
 
     def say(self, text: str):
         print(f"JARVIS: {text}")
+        if self.clone is not None:
+            from voiceclone import audio
+
+            cloner, voice = self.clone
+            try:
+                wav, sr = cloner.speak(voice, text, language="en", fast=True)
+                audio.play(wav, sr)
+                return
+            except Exception as e:
+                print(f"(Cloned voice failed: {e}. Switching to the built-in voice.)")
+                self.clone = None
         if self.engine is not None:
             self.engine.say(text)
             self.engine.runAndWait()
