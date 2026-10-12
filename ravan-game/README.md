@@ -60,15 +60,27 @@ and Malayalam should get a quick look too. To fix a line, open **Settings**, pre
 **Edit Ravan's lines**, pick the language, change the text and press **Save**. Put
 each line on its own row and write `{name}` where the player's name goes.
 
-**Hearing Ravan speak.** Ravan reads his lines aloud with the device's own
-text-to-speech voices, made as deep as each voice allows. Settings lists which
-languages the device can speak. Bhojpuri and the other Hindi-belt dialects use the
-Hindi voice. Languages with no voice on the device show as subtitles only.
+**Giving Ravan a real voice.** The best Ravan is a real person. Open **Settings**,
+press **Edit Ravan's lines** and pick a language. Next to each line, press **Record**,
+say the line in a big Ramlila voice without the player's name (the name still shows
+on screen), and press **Stop**. You can also record on a phone and press **Upload**.
+The game trims the silence, evens out the volume, makes the voice deeper and adds
+Ravan's loudspeaker echo (untick the box to switch the effect off). Recordings are
+saved on that device and are used in place of the computer voice. A student who can
+do a good Ravan voice can record the main lines of a language in a few minutes.
 
-- **Windows:** open Settings, then Time & language, then Speech, then Add voices. Add
-  Hindi, Tamil, Telugu, Bengali and the others you need, so they work without internet.
-- **Android:** install or update Speech Services by Google and download the Indian
-  language voices in its settings.
+**The computer voice.** Lines that are not recorded are read with the device's own
+text-to-speech voice. The game picks a man's voice where the device has one, and the
+same screen lets you choose the voice for each language and hear it, or choose
+**No voice** so Ravan only shows subtitles and laughs. Bhojpuri and the other
+Hindi-belt dialects use the Hindi voice. Settings lists which languages the device
+can speak.
+
+- **Windows:** open Settings, then Time & language, then Speech, then Add voices.
+  The Hindi pack includes Microsoft Hemant, a man's voice that works offline.
+- **Android:** the voice is chosen in the tablet's own settings, under Accessibility,
+  Text-to-speech output, the engine's settings, Install voice data, then the language.
+  The game cannot choose it, so recording the lines is the surest way to a man's voice.
 
 Turn **Ask each player's name and state** off in Settings to skip the form and use
 one language for everyone.

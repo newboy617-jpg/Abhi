@@ -275,7 +275,16 @@ label.btn { display: inline-flex; align-items: center; box-sizing: border-box; c
 .lines-panel { width: min(100%, 52rem); display: grid; gap: 0.9rem; }
 .lines-panel label { display: grid; gap: 0.3rem; font-weight: 700; }
 .lines-panel label small { font-weight: 500; color: var(--muted); }
-.lines-panel textarea { font-family: var(--font-indic); font-size: 1.1rem; line-height: 1.4; resize: vertical; }
+.line-group { margin: 0; padding: 0.7rem 0.9rem 0.9rem; border: 1px solid var(--line-soft); border-radius: 0.4rem; display: grid; gap: 0.8rem; min-width: 0; }
+.line-group legend { padding-inline: 0.4rem; font-weight: 700; }
+.line-row { display: grid; gap: 0.35rem; min-width: 0; }
+.line-row .field { width: 100%; font-family: var(--font-indic); font-size: 1.1rem; }
+.line-row small { color: var(--muted); }
+.rec-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.rec-row .btn { min-height: 40px; padding: 0.3rem 0.85rem; font-size: 0.9rem; }
+.rec-row .btn.recording { background: var(--sindoor); border-color: var(--sindoor); animation: pulse 0.6s ease-in-out infinite alternate; }
+.rec-state { font-size: 0.85rem; color: var(--muted); }
+.rec-state.has { color: var(--marigold); font-weight: 700; }
 .voice-info { font-size: 0.95rem; color: var(--muted); }
 .settings-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
 .small-panel { width: min(100%, 26rem); display: grid; gap: 1rem; text-align: center; justify-items: center; }
@@ -299,6 +308,7 @@ label.btn { display: inline-flex; align-items: center; box-sizing: border-box; c
   #banner.show { transform: none; }
   .hud-cell.warn .hud-val { animation: none; }
   .btn-primary { transition: none; }
+  .rec-row .btn.recording { animation: none; }
 }
 </style>
 
@@ -333,8 +343,13 @@ label.btn { display: inline-flex; align-items: center; box-sizing: border-box; c
 <section id="linesScreen" class="screen" aria-labelledby="linesHeading" hidden>
   <form class="panel lines-panel" id="linesForm" autocomplete="off">
     <h2 id="linesHeading">Ravan's lines</h2>
-    <p class="muted">Ask a student who speaks the language to check these. Put each line on its own row and write {name} where the player's name goes.</p>
+    <p class="muted">Ask a student who speaks the language to check these lines. Write {name} where the player's name goes.</p>
     <label for="linesLang">Language<select class="field" id="linesLang"></select></label>
+    <label for="linesVoice">Ravan's speaking voice for this language<select class="field" id="linesVoice"></select></label>
+    <p class="voice-info" id="linesVoiceHint"></p>
+    <label class="check" for="setVoiceFx"><input type="checkbox" id="setVoiceFx"> Make recorded lines deep and booming, with Ravan's echo</label>
+    <p class="muted">Best of all, record the lines in a big Ramlila voice: press Record, say the line without the name (the name still shows on screen), then press Stop. Or record on a phone and press Upload.</p>
+    <input type="file" id="lineUpload" class="file-pick" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm" tabindex="-1" aria-hidden="true">
     <div id="linesFields" class="lines-panel"></div>
     <p class="voice-info" id="linesStatus" aria-live="polite"></p>
     <div class="row">
@@ -478,7 +493,7 @@ const DIFF = { easy: { amp: 0.7, spd: 0.75 }, normal: { amp: 1, spd: 1 }, hard: 
 const ARROW_CHOICES = [12, 15, 18, 20, 25];          // at least 11 targets, so never fewer than 12
 const TIME_CHOICES = [30, 45, 60, 90, 120];
 const BUILTIN_CLIP = ((u) => (u.startsWith('data:audio/') ? u : ''))('__LAUGH_CLIP__');   // filled in only for a stall copy built with a recording
-const DEFAULTS = { stall: 'Dandiya Night Games', prize: 'Top score tonight wins a prize!', arrows: 15, time: 60, diff: 'normal', sound: true, laughMode: BUILTIN_CLIP ? 'clip' : 'synth', askJoin: true, lang: 'hi', speak: true, lastState: '', lastLang: '' };
+const DEFAULTS = { stall: 'Dandiya Night Games', prize: 'Top score tonight wins a prize!', arrows: 15, time: 60, diff: 'normal', sound: true, laughMode: BUILTIN_CLIP ? 'clip' : 'synth', askJoin: true, lang: 'hi', speak: true, lastState: '', lastLang: '', voices: {}, voiceFx: true };
 const KEY_SET = 'ravan10.settings', KEY_BOARD = 'ravan10.board', KEY_CLIP = 'ravan10.laughClip', KEY_LINES = 'ravan10.lines';
 const LANGS = [{"code":"hi","name":"Hindi","nameNative":"हिन्दी","regions":"Delhi, Uttar Pradesh, Madhya Pradesh, Rajasthan","ttsLangs":["hi-IN"],"noName":"तीरंदाज़","lines":{"attract":["किसमें है दम रावण से भिड़ने का? आ जा, ले मुझसे टक्कर!"],"challenge":["अरे {name}, रावण से लड़ने का शौक चढ़ा है? दिखा अपना दम!","दस सिर तेरे सामने हैं, {name}! अब देखते हैं जीत किसकी होती है!"],"miss":["हा हा! निशाना चूक गया! बस इतना ही दम है तुझमें?","इतने बड़े सिर पर भी निशाना नहीं लगता तुझसे?","अरे {name}, आँखें खोल के निशाना लगा!"],"hit":["एक सिर गिरा दिया तो क्या? मेरे पास और बहुत पड़े हैं!","आह! इसकी कीमत तुझे चुकानी पड़ेगी!"],"navel":["मेरी नाभि में अमृत है, {name}! वहाँ तक तेरा तीर कभी नहीं पहुँचेगा!"],"lose":["हार हो गई तेरी, {name}! जा, ताक़त बढ़ा के फिर आना!","हा हा हा! रावण को हराना इतना आसान नहीं!"],"win":["नहीं... ये नहीं हो सकता! {name}, तूने रावण को हरा दिया!"]},"gloss":{"attract":["Who has the guts to take on Ravan? Come on, take me on!"],"challenge":["Hey {name}, got the itch to fight Ravan? Show me your strength!","Ten heads are in front of you, {name}! Now let us see who wins!"],"miss":["Ha ha! Your aim missed! Is that all the strength you have?","You cannot land an arrow even on a head this big?","Hey {name}, open your eyes and aim!"],"hit":["So you knocked off one head, so what? I have plenty more lying around!","Ouch! You will have to pay for that!"],"navel":["The nectar is in my navel, {name}! Your arrow will never reach it!"],"lose":["Defeat is yours, {name}! Go, build up your strength and come back!","Ha ha ha! Defeating Ravan is not that easy!"],"win":["No... this cannot be! {name}, you have defeated Ravan!"]}},{"code":"bho","name":"Bhojpuri","nameNative":"भोजपुरी","regions":"Varanasi, East UP, West Bihar, Chhapra","ttsLangs":["bho-IN","hi-IN"],"noName":"तीरंदाज","lines":{"attract":["केकरा में दम बा रावण से भिड़े के? आवऽ, ले लऽ टक्कर!"],"challenge":["का हो {name}, हमरा से लड़े के मन बा? देखावऽ आपन दम!","दस गो मूड़ी तोहरा सामने बा, {name}! अब देखल जाई, के जीती!"],"miss":["हा हा! निसाना चूक गइल! बस एतने दम बा का?","एतना बड़ मूड़ियो पर तोहरा से निसाना ना लागल?","अरे {name}, तनी ठीक से निसाना लगावऽ!"],"hit":["एगो मूड़ी गिर गइल त का भइल? अबहीं ढेर बाकी बा!","आह! एकर हिसाब तोहरा के चुकावे के पड़ी!"],"navel":["हमरा नाभी में अमरित बा, {name}! ओहिजा तक तोहार तीर कबो ना पहुँची!"],"lose":["हार हो गइल तोहार, {name}! जा, ताकत बढ़ा के फेर आवऽ!","हा हा हा! रावण के हरावल एतना आसान नइखे!"],"win":["ना... ई ना हो सकेला! {name}, रावण हार गइल तोहरा से!"]},"gloss":{"attract":["Who has the guts to clash with Ravan? Come on, take me on!"],"challenge":["Well then {name}, feel like fighting me? Show your strength!","Ten heads are in front of you, {name}! Now we will see who wins!"],"miss":["Ha ha! The aim missed! Is that all the strength there is?","You could not land an arrow even on a head this big?","Hey {name}, aim properly, will you!"],"hit":["One head fell, so what happened? Plenty are still left!","Ouch! You will have to settle the account for this!"],"navel":["The nectar is in my navel, {name}! Your arrow will never get there!"],"lose":["Defeat is yours, {name}! Go, build up your strength and come again!","Ha ha ha! Defeating Ravan is not that easy!"],"win":["No... this cannot happen! {name}, Ravan has lost to you!"]}},{"code":"awa","name":"Awadhi","nameNative":"अवधी","regions":"Lucknow, Ayodhya, Prayagraj, Central UP","ttsLangs":["awa-IN","hi-IN"],"noName":"तीरंदाज","lines":{"attract":["केहिमा दम है जो रावन से भिड़ै? आवौ, लेव हमसे टक्कर!"],"challenge":["अरे {name}, हमसे भिड़ै कै हिम्मत? तनिक आपन दम तौ देखावौ!","दस मूड़ तुम्हरे सामने हैं, {name}! अब देखा जाय, कउन जीती!"],"miss":["हा हा! निसाना चूकि गवा! बस इतनै दम है?","एतने बड़े मूड़ पै भी तुमसे निसाना नाहीं लागत?","अरे {name}, तनिक आँखी खोलि के निसाना लगावौ!"],"hit":["एक मूड़ गिरि गवा तौ का भवा? अबहिन बहुत बाकी हैं!","आह! एहि कै हिसाब तुमका चुकावै पड़ी!"],"navel":["हमरी नाभी मा अमरित है, {name}! हुआँ तक तुम्हार तीर कबहूँ न पहुँची!"],"lose":["तुम्हार हार होइ गई, {name}! जाव, ताकत बढ़ाय के फिर आवौ!","हा हा हा! रावन का हराउब कौनो हँसी खेल नाहीं!"],"win":["नाहीं... ई नाहीं होइ सकत! {name}, रावन हारि गवा तुमसे!"]},"gloss":{"attract":["Who has the guts to clash with Ravan? Come on, take me on!"],"challenge":["Hey {name}, you dare to clash with me? Just show me your strength!","Ten heads are in front of you, {name}! Now let us see who wins!"],"miss":["Ha ha! The aim missed! Is that all the strength there is?","You cannot land an arrow even on a head this big?","Hey {name}, open your eyes a little and aim!"],"hit":["One head fell, so what happened? Plenty are still left!","Ouch! You will have to settle the account for this!"],"navel":["The nectar is in my navel, {name}! Your arrow will never reach there!"],"lose":["Defeat is yours, {name}! Go, build up your strength and come again!","Ha ha ha! Defeating Ravan is no child's play!"],"win":["No... this cannot be! {name}, Ravan has lost to you!"]}},{"code":"mai","name":"Maithili","nameNative":"मैथिली","regions":"Darbhanga, Madhubani, Mithila, Janakpur","ttsLangs":["mai-IN","hi-IN"],"noName":"तीरंदाज","lines":{"attract":["ककरा मे दम छै जे रावण सँ भिड़त? आबि जो, ले टक्कर!"],"challenge":["अरे {name}, हमरा सँ लड़बाक मोन छौ? देखा अपन दम!","दस टा माथ तोरा सोझाँ छौ, {name}! आब देखी, के जीतत!"],"miss":["हा हा! निशाना चूकि गेलौ! बस एतबे दम छौ?","एतेक पैघ माथ पर सेहो निशाना नै लगलौ?","अरे {name}, नीक सँ निशाना लगा ने!"],"hit":["एकटा माथ खसि पड़ल तँ की भेल? एखनो बहुत बाँचल अछि!","आह! एकर दाम तोरा चुकाबय पड़तौ!"],"navel":["हमर नाभि मे अमृत अछि, {name}! ओतय धरि तोर तीर कहियो नै पहुँचतौ!"],"lose":["तोर हार भऽ गेलौ, {name}! जो, बल बढ़ा कऽ फेर आ!","हा हा हा! रावण केँ हराएब एतेक सहज नहि!"],"win":["नहि... ई कोना भऽ गेल! {name}, रावण तोरा सँ हारि गेल!"]},"gloss":{"attract":["Who has the guts to clash with Ravan? Come on over, take me on!"],"challenge":["Hey {name}, feel like fighting me? Show your strength!","Ten heads are in front of you, {name}! Now let us see who wins!"],"miss":["Ha ha! Your aim missed! Is that all the strength you have?","You could not land an arrow even on a head this big?","Hey {name}, aim properly, will you!"],"hit":["One head fell, so what? Plenty are still left!","Ouch! You will have to pay the price for this!"],"navel":["The nectar is in my navel, {name}! Your arrow will never reach there!"],"lose":["Defeat is yours, {name}! Go, build up your might and come again!","Ha ha ha! Defeating Ravan is not that easy!"],"win":["No... how did this happen! {name}, Ravan has lost to you!"]}},{"code":"mag","name":"Magahi","nameNative":"मगही","regions":"Patna, Gaya, Nalanda, Jehanabad","ttsLangs":["mag-IN","hi-IN"],"noName":"तीरंदाज","lines":{"attract":["केकरा में हइ दम कि रावण से भिड़तइ? आवऽ, ले लऽ टक्कर!"],"challenge":["अरे {name}, हमरा से लड़े के मन हको? देखावऽ अप्पन दम!","दस गो मुड़ी तोहरा सामने हइ, {name}! देखल जाय, के जीततइ!"],"miss":["हा हा! निसाना चूक गेलो! बस एतने दम हको?","एतना बड़गो मुड़ी पर भी निसाना नञ लगलो?","अरे {name}, तनि आँख खोल के निसाना लगावऽ!"],"hit":["एगो मुड़ी गिर गेलइ त की होलइ? अखनी ढेर बचल हइ!","आह! एकर हिसाब तोहरा चुकावे पड़तो!"],"navel":["हम्मर नाभी में अमरित हइ, {name}! हुआँ तोहर तीर कभियो नञ पहुँचतो!"],"lose":["हार हो गेलो तोहर, {name}! जा, ताकत बढ़ा के फिनो आवऽ!","हा हा हा! रावण के हरावे एतना असान नञ हइ!"],"win":["नञ... ई कइसे हो गेलइ! {name}, रावण तोहरा से हार गेलइ!"]},"gloss":{"attract":["Who has the guts to clash with Ravan? Come on, take me on!"],"challenge":["Hey {name}, feel like fighting me? Show your own strength!","Ten heads are in front of you, {name}! Let us see who wins!"],"miss":["Ha ha! Your aim missed! Is that all the strength you have?","You could not land an arrow even on a head this big?","Hey {name}, open your eyes a little and aim!"],"hit":["One head fell, so what happened? Plenty are still left right now!","Ouch! You will have to settle the account for this!"],"navel":["The nectar is in my navel, {name}! Your arrow will never reach there!"],"lose":["Defeat is yours, {name}! Go, build up your strength and come again!","Ha ha ha! Defeating Ravan is not that easy!"],"win":["No... how did this happen! {name}, Ravan has lost to you!"]}},{"code":"bgc","name":"Haryanvi","nameNative":"हरियाणवी","regions":"Haryana, Rohtak, Hisar, Sonipat","ttsLangs":["bgc-IN","hi-IN"],"noName":"योद्धा","lines":{"attract":["किसमैं दम सै रावण तै भिड़ण का? आ ज्याओ, हो ज्या मुकाबला!"],"challenge":["{name}, तन्नै मेरे तै टक्कर लेणी सै? दिखा फेर अपणा जोर!","{name}, तेरे सामणै दस सिर सैं! देक्खां, कौण जीतै सै!"],"miss":["निशाना चूक ग्या! बस इतणा ए दम सै तेरे मैं?","इतणे बड्डे सिर पै बी तेरा तीर कोन्या लाग्या?","{name}, आँख खोल कै ढंग तै निशाना ला!"],"hit":["एक सिर पड़ग्या तो के होग्या? मेरे धोरै घणे सैं!","हाय मेरा सिर! इसका हिसाब तन्नै देणा पड़ैगा!"],"navel":["{name}, मेरी नाभि मैं अमृत सै! उड़ै तेरा तीर कदे ना पहोंचैगा!"],"lose":["{name}, हार होगी तेरी! ताकत कठ्ठी करकै फेर आइये!","रावण नै हराणा इतणा सौखा कोन्या!"],"win":["ना... यो ना हो सकै! {name}, तन्नै रावण नै हरा दिया!"]},"gloss":{"attract":["Who has the guts to take on Ravan? Come on, let the contest begin!"],"challenge":["{name}, you want to take me on? Then show me your strength!","{name}, ten heads stand before you! Let us see who wins!"],"miss":["The shot missed! Is that all the strength you have?","Your arrow could not hit even a head this big?","{name}, open your eyes and aim properly!"],"hit":["One head fell, so what? I have plenty more!","Oh, my head! You will have to pay for this!"],"navel":["{name}, the nectar is in my navel! Your arrow will never reach it!"],"lose":["{name}, you have lost! Gather your strength and come again!","Defeating Ravan is not that easy!"],"win":["No... this cannot be! {name}, you have defeated Ravan!"]}},{"code":"raj","name":"Rajasthani (Marwari)","nameNative":"राजस्थानी (मारवाड़ी)","regions":"Rajasthan, Jodhpur, Bikaner, Jaisalmer","ttsLangs":["raj-IN","mwr-IN","hi-IN"],"noName":"जोधा","lines":{"attract":["किण मांय है दम रावण सूं भिड़ण रो? आवो, हो जावै मुकाबलो!"],"challenge":["{name}, थनै म्हासूं टक्कर लेणी है? तो दिखा थारो जोर!","{name}, थारै सामी दस माथा है! देखां, कुण जीतै!"],"miss":["निसाणो चूकग्यो! बस इत्तो ई दम है थारै मांय?","इत्तै मोटै माथै पर ई थारो तीर कोनी लाग्यो?","{name}, आंख्यां खोलनै निसाणो साध!"],"hit":["एक माथो पड़ग्यो तो कांई होयो? म्हारै कनै घणा है!","हाय! इणरो हिसाब थनै देणो पड़सी!"],"navel":["{name}, म्हारी नाभि मांय अमरित है! बठै थारो तीर कदैई कोनी पूगसी!"],"lose":["{name}, हार होगी थारी! ताकत भेळी करनै फेरूं आजै!","रावण नै हराणो इत्तो सोरो कोनी!"],"win":["ना... ओ कोनी हो सकै! {name}, थैं रावण नै हरा दियो!"]},"gloss":{"attract":["Who has the strength to take on Ravan? Come on, let the contest begin!"],"challenge":["{name}, you want to take me on? Then show me your strength!","{name}, ten heads stand before you! Let us see who wins!"],"miss":["The shot missed! Is that all the strength you have?","Your arrow could not hit even a head this big?","{name}, open your eyes and take aim!"],"hit":["One head fell, so what? I have plenty!","Ouch! You will have to pay for this!"],"navel":["{name}, the nectar is in my navel! Your arrow will never reach it!"],"lose":["{name}, you have lost! Gather your strength and come again!","Defeating Ravan is not that easy!"],"win":["No... this cannot be! {name}, you have defeated Ravan!"]}},{"code":"hne","name":"Chhattisgarhi","nameNative":"छत्तीसगढ़ी","regions":"Chhattisgarh, Raipur, Bilaspur, Durg","ttsLangs":["hne-IN","hi-IN"],"noName":"जोधा","lines":{"attract":["काकर म दम हे रावन ले लड़े के? आवव, भिड़ के देखव!"],"challenge":["{name}, तैं मोर ले लड़बे? त देखा अपन ताकत!","{name}, तोर आघू म दस मुड़ी हे! देखबो, कोन जीतथे!"],"miss":["निसाना चूक गे! बस अतकेच दम हे तोर म?","अतेक बड़ मुड़ी म घलो तोर तीर नइ लगिस?","{name}, आंखी खोल के बने निसाना लगा!"],"hit":["एक मुड़ी गिर गे त का होगे? मोर करा अउ अब्बड़ हे!","हाय! एखर हिसाब तोला देय ल परही!"],"navel":["{name}, मोर नाभि म अमरित भरे हे! उहां तोर तीर कभू नइ पहुंचही!"],"lose":["{name}, तोर हार होगे! ताकत बटोर के फेर आबे!","रावन ल हराना अतेक सहज नो हे!"],"win":["नहीं... अइसन कइसे हो गे! {name}, तैं रावन ल हरा देस!"]},"gloss":{"attract":["Who has the strength to fight Ravan? Come on, take me on and see!"],"challenge":["{name}, you will fight me? Then show me your strength!","{name}, ten heads stand before you! We will see who wins!"],"miss":["The shot missed! Is that all the strength you have?","Your arrow did not hit even a head this big?","{name}, open your eyes and aim properly!"],"hit":["One head fell, so what? I have plenty more!","Ouch! You will have to pay for this!"],"navel":["{name}, my navel is full of nectar! Your arrow will never reach it!"],"lose":["{name}, you have lost! Gather your strength and come again!","Defeating Ravan is not that easy!"],"win":["No... how did this happen! {name}, you have defeated Ravan!"]}},{"code":"pa","name":"Punjabi","nameNative":"ਪੰਜਾਬੀ","regions":"Punjab, Amritsar, Ludhiana, Chandigarh","ttsLangs":["pa-IN"],"noName":"ਤੀਰਅੰਦਾਜ਼","lines":{"attract":["ਕਿਹਦੇ ਵਿੱਚ ਦਮ ਹੈ ਰਾਵਣ ਨਾਲ ਭਿੜਨ ਦਾ? ਆ ਜਾਓ, ਹੋ ਜਾਏ ਮੁਕਾਬਲਾ!"],"challenge":["{name}, ਤੈਨੂੰ ਮੇਰੇ ਨਾਲ ਟੱਕਰ ਲੈਣੀ ਹੈ? ਚੱਲ, ਵਿਖਾ ਆਪਣਾ ਜ਼ੋਰ!","{name}, ਤੇਰੇ ਸਾਹਮਣੇ ਦਸ ਸਿਰ ਨੇ! ਵੇਖੀਏ, ਜਿੱਤ ਕਿਹਦੀ ਹੁੰਦੀ ਹੈ!"],"miss":["ਨਿਸ਼ਾਨਾ ਖੁੰਝ ਗਿਆ! ਬੱਸ ਏਨਾ ਹੀ ਦਮ ਹੈ ਤੇਰੇ ਵਿੱਚ?","ਏਡੇ ਵੱਡੇ ਸਿਰ ਉੱਤੇ ਵੀ ਤੇਰਾ ਤੀਰ ਨਹੀਂ ਲੱਗਾ?","{name}, ਅੱਖਾਂ ਖੋਲ੍ਹ ਕੇ ਨਿਸ਼ਾਨਾ ਲਾ!"],"hit":["ਇੱਕ ਸਿਰ ਡਿੱਗ ਪਿਆ ਤਾਂ ਕੀ ਹੋਇਆ? ਮੇਰੇ ਕੋਲ ਹੋਰ ਬਥੇਰੇ ਨੇ!","ਹਾਏ! ਇਹਦਾ ਹਿਸਾਬ ਤੈਨੂੰ ਦੇਣਾ ਪਊ!"],"navel":["{name}, ਮੇਰੀ ਧੁੰਨੀ ਵਿੱਚ ਅਮਰ ਰਸ ਹੈ! ਤੇਰਾ ਤੀਰ ਉੱਥੇ ਕਦੇ ਨਹੀਂ ਪੁੱਜਣਾ!"],"lose":["{name}, ਹਾਰ ਹੋ ਗਈ ਤੇਰੀ! ਜ਼ੋਰ ਇਕੱਠਾ ਕਰਕੇ ਫੇਰ ਆਈਂ!","ਰਾਵਣ ਨੂੰ ਹਰਾਉਣਾ ਏਨਾ ਸੌਖਾ ਨਹੀਂ!"],"win":["ਨਹੀਂ... ਇਹ ਹੋ ਨਹੀਂ ਸਕਦਾ! {name}, ਤੂੰ ਰਾਵਣ ਨੂੰ ਹਰਾ ਦਿੱਤਾ!"]},"gloss":{"attract":["Who has the strength to take on Ravan? Come on, let the contest begin!"],"challenge":["{name}, you want to take me on? Come on, show me your strength!","{name}, ten heads stand before you! Let us see whose victory it will be!"],"miss":["The shot missed! Is that all the strength you have?","Your arrow did not hit even a head this big?","{name}, open your eyes and aim!"],"hit":["One head fell, so what? I have plenty more!","Ouch! You will have to pay for this!"],"navel":["{name}, the nectar of immortality is in my navel! Your arrow will never get there!"],"lose":["{name}, you have lost! Gather your strength and come again!","Defeating Ravan is not that easy!"],"win":["No... this cannot be! {name}, you have defeated Ravan!"]}},{"code":"ur","name":"Urdu","nameNative":"اردو","regions":"Lucknow, Hyderabad, Delhi, Bhopal","ttsLangs":["ur-IN","ur-PK"],"noName":"تیرانداز","lines":{"attract":["کس میں ہے ہمت راون سے ٹکر لینے کی؟ آؤ، ہو جائے مقابلہ!"],"challenge":["{name}، تجھے مجھ سے ٹکر لینی ہے؟ چل، دکھا اپنا زور!","{name}، تیرے سامنے دس سر ہیں! دیکھتے ہیں جیت کس کی ہوتی ہے!"],"miss":["نشانہ خطا ہو گیا! بس اتنا ہی دم ہے تجھ میں؟","اتنے بڑے سر پر بھی تیرا تیر نہیں لگا؟","{name}، ذرا آنکھیں کھول کر نشانہ لگا!"],"hit":["ایک سر گرا تو کیا ہوا؟ ابھی بہت باقی ہیں!","اُف! اس گستاخی کا حساب تجھے دینا پڑے گا!"],"navel":["{name}، میری ناف میں آبِ حیات ہے! تیرا تیر وہاں کبھی نہ پہنچے گا!"],"lose":["{name}، ہار ہو گئی تیری! طاقت جمع کر کے پھر آنا!","راون کو ہرانا اتنا آسان نہیں!"],"win":["نہیں... یہ ناممکن ہے! {name}، تُو نے راون کو ہرا دیا!"]},"gloss":{"attract":["Who has the courage to take on Ravan? Come on, let the contest begin!"],"challenge":["{name}, you want to take me on? Come on, show me your strength!","{name}, ten heads stand before you! Let us see whose victory it will be!"],"miss":["Your shot went astray! Is that all the strength you have?","Your arrow did not hit even a head this big?","{name}, just open your eyes and aim!"],"hit":["One head fell, so what? Plenty are still left!","Ugh! You will have to pay for this insolence!"],"navel":["{name}, the water of life is in my navel! Your arrow will never reach it!"],"lose":["{name}, you have lost! Gather your strength and come again!","Defeating Ravan is not that easy!"],"win":["No... this is impossible! {name}, you have defeated Ravan!"]}},{"code":"bn","name":"Bengali","nameNative":"বাংলা","regions":"Kolkata, West Bengal, Tripura","ttsLangs":["bn-IN","bn-BD"],"noName":"তীরন্দাজ","lines":{"attract":["কার ঘাড়ে কটা মাথা যে রাবণের সঙ্গে লড়বে? আয় দেখি!"],"challenge":["{name}, আমার সঙ্গে লড়তে এসেছিস? দেখি তোর কত দম!","দশটা মাথা তোর সামনে, {name}! দেখা যাক কে জেতে!"],"miss":["ফসকে গেল! এইটুকুই তোর মুরোদ?","এত্ত বড় মাথা, তাও তীর লাগাতে পারলি না?","ঠিক করে তাক কর, {name}! এভাবে হবে না!"],"hit":["একটা মাথা গেল তো কী হয়েছে? আমার আরও অনেক আছে!","উফ! এর মাশুল তোকে গুনতে হবে!"],"navel":["আমার নাভিতেই অমৃত, {name}! ওখানে তীর লাগানো তোর কম্ম নয়!"],"lose":["হেরে গেলি, {name}! শক্তি বাড়িয়ে আবার আসিস!","রাবণকে হারানো অত সোজা নয় রে!"],"win":["না... অসম্ভব! {name}, তুই রাবণকে হারিয়ে দিলি!"]},"gloss":{"attract":["Who has heads to spare (who dares), that they would fight Ravan? Come on then!"],"challenge":["{name}, you have come to fight me? Let me see how much grit you have!","Ten heads in front of you, {name}! Let us see who wins!"],"miss":["Missed! Is this all you are capable of?","Such a huge head, and you still could not land an arrow on it?","Aim properly, {name}! This will not do!"],"hit":["So one head went, so what? I have many more!","Ouch! You will have to pay the price for this!"],"navel":["The nectar is right in my navel, {name}! Landing an arrow there is beyond you!"],"lose":["You lost, {name}! Build up your strength and come again!","Defeating Ravan is not that easy!"],"win":["No... impossible! {name}, you have defeated Ravan!"]}},{"code":"or","name":"Odia","nameNative":"ଓଡ଼ିଆ","regions":"Bhubaneswar, Cuttack, Puri, Odisha","ttsLangs":["or-IN"],"noName":"ଯୋଦ୍ଧା","lines":{"attract":["କାହାର ଏତେ ସାହସ ଯେ ରାବଣ ସାଙ୍ଗେ ଲଢ଼ିବ? ଆ, ମୋ ସାମ୍ନାକୁ ଆ!"],"challenge":["{name}, ମୋ ସାଙ୍ଗେ ଲଢ଼ିବାକୁ ଆସିଛୁ? ଦେଖା ତୋ ଦମ୍ କେତେ!","ଦଶଟା ମୁଣ୍ଡ ତୋ ସାମ୍ନାରେ, {name}! ଦେଖିବା କିଏ ଜିତେ!"],"miss":["ଚୁକିଗଲା! ଏତିକି ତୋର ବଳ?","ଏତେ ବଡ଼ ମୁଣ୍ଡରେ ବି ତୋ ତୀର ବାଜୁନି?","ଭଲ କରି ନିଶାଣ ଲଗା, {name}!"],"hit":["ଗୋଟେ ମୁଣ୍ଡ ଗଲା ତ କଣ ହେଲା? ମୋର ଆହୁରି ବହୁତ ଅଛି!","ଉଃ! ଏଇଟାର ହିସାବ ତତେ ଦେବାକୁ ପଡ଼ିବ!"],"navel":["ମୋ ନାଭିରେ ଅମୃତ ଅଛି, {name}! ସେଠି ତୋ ତୀର କେବେ ବି ବାଜିବନି!"],"lose":["ହାରିଗଲୁ, {name}! ବଳ ବଢ଼ାଇ ପୁଣି ଆସିବୁ!","ରାବଣକୁ ହରାଇବା ଏତେ ସହଜ ନୁହେଁ ରେ!"],"win":["ନା... ଅସମ୍ଭବ! {name}, ତୁ ରାବଣକୁ ହରାଇଦେଲୁ!"]},"gloss":{"attract":["Who has the nerve to fight Ravan? Come, come and face me!"],"challenge":["{name}, you have come to fight me? Show me how much grit you have!","Ten heads in front of you, {name}! Let us see who wins!"],"miss":["Missed! Is this all the strength you have?","Your arrow cannot hit even a head this big?","Aim properly, {name}!"],"hit":["So one head went, so what? I have plenty more!","Ouch! You will have to settle the score for this!"],"navel":["The nectar is in my navel, {name}! Your arrow will never hit there!"],"lose":["You lost, {name}! Build your strength and come again!","Defeating Ravan is not that easy!"],"win":["No... impossible! {name}, you have defeated Ravan!"]}},{"code":"as","name":"Assamese","nameNative":"অসমীয়া","regions":"Guwahati, Assam, Jorhat, Dibrugarh","ttsLangs":["as-IN","bn-IN"],"noName":"যোদ্ধা","lines":{"attract":["কাৰ ইমান সাহস যে ৰাৱণৰ লগত যুঁজিব? আহচোন, যুঁজি চা!"],"challenge":["{name}, মোৰ লগত যুঁজিবলৈ আহিছ? দেখুৱাচোন তোৰ কিমান বল!","দহটা মূৰ তোৰ সন্মুখত, {name}! চাওঁ বাৰু কোনে জিকে!"],"miss":["নালাগিল! ইমানখিনিয়েই তোৰ ক্ষমতা?","ইমান ডাঙৰ মূৰটোতো কাঁড় লগাব নোৱাৰ?","ভালকৈ চাই কাঁড় মাৰ, {name}!"],"hit":["এটা মূৰ পৰিলেই বা কি? মোৰ আৰু বহুত আছে!","উহ্! ইয়াৰ দাম তই দিবই লাগিব!"],"navel":["মোৰ নাভিত অমৃত আছে, {name}! তাত তোৰ কাঁড় কেতিয়াও নালাগিব!"],"lose":["হাৰিলি, {name}! শক্তি বঢ়াই লৈ আকৌ আহিবি!","ৰাৱণক হৰুওৱাটো ইমান সহজ নহয় দেই!"],"win":["নহয়... অসম্ভৱ! {name}, তই ৰাৱণক হৰুৱাই দিলি!"]},"gloss":{"attract":["Who has the nerve to fight Ravan? Come on, try fighting me!"],"challenge":["{name}, you have come to fight me? Go on, show me how strong you are!","Ten heads in front of you, {name}! Let us see who wins!"],"miss":["It did not hit! Is this all you can do?","You cannot land an arrow even on a head this big?","Look carefully and shoot, {name}!"],"hit":["So one head fell, so what? I have plenty more!","Ouch! You will have to pay for this!"],"navel":["The nectar is in my navel, {name}! Your arrow will never hit there!"],"lose":["You lost, {name}! Build up your strength and come again!","Defeating Ravan is not that easy, you know!"],"win":["No... impossible! {name}, you have defeated Ravan!"]}},{"code":"ne","name":"Nepali","nameNative":"नेपाली","regions":"Sikkim, Darjeeling, Nepal","ttsLangs":["ne-NP","ne-IN","hi-IN"],"noName":"योद्धा","lines":{"attract":["कसको छ यति हिम्मत, रावणसँग भिड्ने? आइज, भिडेर देखा!"],"challenge":["{name}, मसँग भिड्ने रहर लाग्यो? ल, देखा तेरो दम!","दसवटा टाउको तेरो सामु, {name}! हेरौँ कसले जित्छ!"],"miss":["निसाना चुक्यो! यत्ति हो तेरो तागत?","यत्रो ठूलो टाउकोमा पनि तेरो तीर लाग्दैन?","राम्ररी ताकेर हान्, {name}!"],"hit":["एउटा टाउको खस्यो त के भो? मसँग अझै धेरै छन्!","आइया! यसको मोल तैँले तिर्नुपर्छ!"],"navel":["मेरो नाभिमा अमृत छ, {name}! त्यहाँ तेरो तीर कहिल्यै लाग्दैन!"],"lose":["तेरो हार भयो, {name}! बल बढाएर फेरि आइज!","रावणलाई हराउन त्यति सजिलो छैन नि!"],"win":["होइन... असम्भव! {name}, तैँले रावणलाई हराइस्!"]},"gloss":{"attract":["Who has the nerve to take on Ravan? Come, take me on and show me!"],"challenge":["{name}, so you fancy a fight with me? Go on, show me your grit!","Ten heads in front of you, {name}! Let us see who wins!"],"miss":["Missed the mark! Is this all the strength you have?","Your arrow cannot hit even a head this big?","Take proper aim and shoot, {name}!"],"hit":["So one head fell, so what? I still have plenty!","Ouch! You will have to pay the price for this!"],"navel":["The nectar is in my navel, {name}! Your arrow will never hit there!"],"lose":["You lost, {name}! Build your strength and come again!","Defeating Ravan is not that easy, you know!"],"win":["No... impossible! {name}, you have defeated Ravan!"]}},{"code":"mr","name":"Marathi","nameNative":"मराठी","regions":"Mumbai, Pune, Nagpur, Maharashtra","ttsLangs":["mr-IN","hi-IN"],"noName":"खेळाडू","lines":{"attract":["कुणाच्यात आहे दम रावणाशी भिडायचा? या, होऊन जाऊ दे!"],"challenge":["{name}, माझ्याशी लढायचंय म्हणे? दाखव बघू तुझा दम!","दहा डोकी तुझ्याविरुद्ध, {name}! बघू आता कोण जिंकतं!"],"miss":["नेम चुकला! एवढाच दम होता का तुझ्यात?","एवढं मोठं डोकं, तरी तुझा बाण लागत नाही?","{name}, जरा नीट नेम धर की!"],"hit":["एक डोकं उडवलंस? अजून भरपूर बाकी आहेत!","आई गं! हे तुला चांगलंच महागात पडेल!"],"navel":["{name}, माझ्या नाभीत अमृत आहे! तिथवर तुझा बाण कधीच पोचणार नाही!"],"lose":["{name}, हरवलं मी तुला! जा, अजून ताकद वाढवून परत ये!","रावणाला हरवणं इतकं सोपं नाही, समजलं?"],"win":["नाही... हे अशक्य आहे! {name}, तू रावणाला हरवलंस!"]},"gloss":{"attract":["Who has the guts to take on Ravan? Come on, let's have it!"],"challenge":["{name}, so I hear you want to fight me? Come on, show me your strength!","Ten heads against you, {name}! Let's see who wins now!"],"miss":["Missed! Was that all the strength you had in you?","A head this big, and your arrow still doesn't hit?","{name}, aim properly, will you!"],"hit":["You knocked off one head? I have plenty more left!","Ouch! This is going to cost you dearly!"],"navel":["{name}, the nectar of immortality is in my navel! Your arrow will never reach it!"],"lose":["{name}, I have defeated you! Go, get stronger and come back!","Defeating Ravan is not that easy, got it?"],"win":["No... this is impossible! {name}, you have defeated Ravan!"]}},{"code":"gu","name":"Gujarati","nameNative":"ગુજરાતી","regions":"Ahmedabad, Surat, Vadodara, Gujarat","ttsLangs":["gu-IN"],"noName":"ખેલાડી","lines":{"attract":["કોનામાં છે દમ રાવણ સામે લડવાનો? આવો, થઈ જાય!"],"challenge":["{name}, મારી સામે લડવું છે એમ? બતાવ તો તારો દમ!","દસ માથાં તારી સામે, {name}! હવે જોઈએ કોણ જીતે છે!"],"miss":["તીર ખાલી ગયું! બસ, આટલો જ દમ છે તારામાં?","આટલું મોટું માથું, તોય તીર નથી વાગતું?","{name}, જરા બરાબર નિશાન તાક ને!"],"hit":["એક માથું પડ્યું તો શું થયું? હજી ઘણાં બાકી છે!","ઓય માડી! આ તને બહુ ભારે પડશે!"],"navel":["{name}, મારી નાભિમાં અમૃત છે! ત્યાં તારું તીર કદી નહીં પહોંચે!"],"lose":["{name}, તારી હાર થઈ! જા, તાકાત વધારીને ફરી આવજે!","રાવણને હરાવવો એટલો સહેલો નથી, હોં!"],"win":["ના... અશક્ય! {name}, તેં રાવણને હરાવી દીધો!"]},"gloss":{"attract":["Who has the guts to fight Ravan? Come on, let's have it!"],"challenge":["{name}, so you want to fight me, eh? Go on, show me your strength!","Ten heads against you, {name}! Now let's see who wins!"],"miss":["The arrow went to waste! That's it, that's all the strength you have in you?","A head this big, and still your arrow doesn't hit?","{name}, aim properly, will you!"],"hit":["So one head fell, so what? I still have plenty left!","Oh mother! This is going to cost you heavily!"],"navel":["{name}, the nectar of immortality is in my navel! Your arrow will never reach there!"],"lose":["{name}, you are defeated! Go, build your strength and come again!","Defeating Ravan is not that easy, you know!"],"win":["No... impossible! {name}, you have defeated Ravan!"]}},{"code":"kok","name":"Konkani","nameNative":"कोंकणी","regions":"Goa, Karwar, Mangaluru","ttsLangs":["kok-IN","mr-IN","hi-IN"],"noName":"झुजारी","lines":{"attract":["रावणाकडेन झुजपाक कोणाक आसा धैर? येयात मुखार!"],"challenge":["{name}, म्हजेकडेन झुजूंक जाय तुका? दाखय तुजी तांक!","तुजे आड धा तकल्यो, {name}! पळोवया कोण जिखता तें!"],"miss":["नेम चुकलो! इतलीच तांक आसा तुजेकडेन?","इतली व्हडली तकली आसून लेगीत बाण लागना?","{name}, जरा बरो नेम धर!"],"hit":["एक तकली पडली म्हूण कितें जालें? अजून खूब आसात!","आयो! हाचो सूड हांव घेतलोंच!"],"navel":["{name}, म्हज्या नाभींत अमृत आसा! थंय तुजो बाण केन्नाच पावचो ना!"],"lose":["{name}, तुजी हार जाली! वच, तांक वाडोवन परत ये!","रावणाक हारोवप इतलें सोंपें ना, कळ्ळें?"],"win":["ना... अशक्य! {name}, तुवें रावणाक हारयलें!"]},"gloss":{"attract":["Who has the courage to fight Ravan? Come forward!"],"challenge":["{name}, you want to fight me? Show me your strength!","Ten heads against you, {name}! Let's see who wins!"],"miss":["Missed! Is this all the strength you have?","Even with a head this big, the arrow doesn't hit?","{name}, aim properly a bit!"],"hit":["So one head fell, what of it? I still have plenty!","Ayo! I will surely take revenge for this!"],"navel":["{name}, the nectar of immortality is in my navel! Your arrow will never reach there!"],"lose":["{name}, you are defeated! Go, build up your strength and come back!","Defeating Ravan is not that easy, got it?"],"win":["No... impossible! {name}, you have defeated Ravan!"]}},{"code":"ta","name":"Tamil","nameNative":"தமிழ்","regions":"Tamil Nadu, Chennai, Madurai, Puducherry","ttsLangs":["ta-IN","ta-LK"],"noName":"வில்லாளி","lines":{"attract":["ராவணனோட மோத யாருக்கு தில் இருக்கு? வா, மோதிப் பாரு!"],"challenge":["{name}, என்கூட மோத வந்தியா? எங்க, உன் பலத்தைக் காட்டு!","{name}, உனக்கு எதிரா பத்து தலை! யாரு ஜெயிக்கறதுன்னு பாக்கலாம்!"],"miss":["குறி தப்பிடுச்சே! இவ்ளோதானா உன் திறமை?","இவ்ளோ பெரிய தலையைக் கூட உன்னால அடிக்க முடியலையா?","{name}, ஒழுங்கா குறி பாத்து அடி!"],"hit":["ஒரு தலை போச்சா? என்கிட்ட இன்னும் நிறைய இருக்கு!","ஐயோ! இதுக்கு நீ பதில் சொல்லியே ஆகணும்!"],"navel":["{name}, என் தொப்புள்ல அமிர்தம் இருக்கு! அதை நீ தொடவே முடியாது!"],"lose":["{name}, நீ தோத்துட்ட! இன்னும் பலசாலியா ஆயிட்டு திரும்ப வா!","இந்த ராவணனை அவ்ளோ சுலபமா ஜெயிக்க முடியாது!"],"win":["இல்ல... நம்பவே முடியல! {name}, நீ ராவணனையே ஜெயிச்சுட்ட!"]},"gloss":{"attract":["Who has the guts to clash with Ravan? Come, try clashing with me!"],"challenge":["{name}, you came to clash with me? Come on then, show your strength!","{name}, ten heads against you! Let us see who wins!"],"miss":["Missed the target! Is that all your skill is?","You cannot even hit a head this big?","{name}, aim properly and shoot!"],"hit":["One head gone? I have plenty more!","Ouch! You will have to answer for this!"],"navel":["{name}, the nectar of immortality is in my navel! You cannot even touch it!"],"lose":["{name}, you lost! Become stronger and come back!","Nobody can beat this Ravan that easily!"],"win":["No... I cannot believe it! {name}, you have defeated Ravan himself!"]}},{"code":"te","name":"Telugu","nameNative":"తెలుగు","regions":"Hyderabad, Andhra Pradesh, Telangana, Vizag","ttsLangs":["te-IN"],"noName":"నేస్తం","lines":{"attract":["రావణుడితో పోరాడే దమ్ము ఎవరికుంది? రా, నాతో తలపడు!"],"challenge":["{name}, నాతో యుద్ధానికి వచ్చావా? నీ బలం ఏంటో చూపించు!","{name}, నీకు ఎదురుగా పది తలలు! ఎవరు గెలుస్తారో చూద్దాం!"],"miss":["గురి తప్పింది! నీ సత్తా ఇంతేనా?","ఇంత పెద్ద తలని కూడా కొట్టలేవా?","{name}, సరిగ్గా గురి చూసి కొట్టు!"],"hit":["ఒక్క తల పడిందా? ఇంకా బోలెడు తలలున్నాయి నాకు!","అబ్బా! దీని లెక్క నీతో తేల్చుకుంటా!"],"navel":["{name}, నా నాభిలో అమృతం ఉంది! దాన్ని నువ్వు ఎప్పటికీ కొట్టలేవు!"],"lose":["{name}, ఓడిపోయావు! ఇంకా బలం పెంచుకుని మళ్ళీ రా!","ఈ రావణుణ్ణి అంత తేలిగ్గా ఓడించలేరు!"],"win":["లేదు... ఇది అసాధ్యం! {name}, నువ్వు రావణుణ్ణే ఓడించావు!"]},"gloss":{"attract":["Who has the guts to fight Ravan? Come, take me on!"],"challenge":["{name}, you came to fight me? Show me what your strength is!","{name}, ten heads in front of you! Let us see who wins!"],"miss":["Missed the target! Is this all you have got?","You cannot even hit a head this big?","{name}, aim properly and shoot!"],"hit":["One head fell? I still have loads of heads!","Ouch! I will settle the score for this with you!"],"navel":["{name}, the nectar of immortality is in my navel! You can never hit it!"],"lose":["{name}, you lost! Build up more strength and come back!","Nobody can defeat this Ravan so easily!"],"win":["No... this is impossible! {name}, you have defeated Ravan himself!"]}},{"code":"kn","name":"Kannada","nameNative":"ಕನ್ನಡ","regions":"Bengaluru, Mysuru, Karnataka, Hubballi","ttsLangs":["kn-IN"],"noName":"ಎದುರಾಳಿ","lines":{"attract":["ರಾವಣನ ಎದುರು ನಿಲ್ಲೋಕೆ ಯಾರಿಗಿದೆ ತಾಕತ್ತು? ಬಾ, ನನ್ನ ಜೊತೆ ಕಾದಾಡು!"],"challenge":["{name}, ನನ್ನ ಜೊತೆ ಯುದ್ಧಕ್ಕೆ ಬಂದ್ಯಾ? ನಿನ್ನ ತಾಕತ್ತು ತೋರಿಸು!","{name}, ನಿನ್ನ ಎದುರು ಹತ್ತು ತಲೆ! ಯಾರು ಗೆಲ್ತಾರೆ ನೋಡೇಬಿಡೋಣ!"],"miss":["ಗುರಿ ತಪ್ಪಿತು! ನಿನ್ನ ಕೈಲಿ ಆಗೋದು ಇಷ್ಟೇನಾ?","ಇಷ್ಟು ದೊಡ್ಡ ತಲೆಗೂ ಹೊಡೆಯೋಕೆ ನಿಂಗೆ ಆಗಲ್ವಾ?","{name}, ಸರಿಯಾಗಿ ಗುರಿ ಇಟ್ಟು ಹೊಡಿ!"],"hit":["ಒಂದು ತಲೆ ಬಿತ್ತಾ? ನನ್ನ ಹತ್ರ ಇನ್ನೂ ಬೇಕಾದಷ್ಟಿದೆ!","ಅಯ್ಯೋ! ಇದಕ್ಕೆ ನೀನು ಅನುಭವಿಸ್ತೀಯ!"],"navel":["{name}, ನನ್ನ ನಾಭಿಯಲ್ಲಿ ಅಮೃತ ಇದೆ! ಅದನ್ನ ಮುಟ್ಟೋಕೂ ನಿನ್ನಿಂದ ಆಗಲ್ಲ!"],"lose":["{name}, ನೀನು ಸೋತೆ! ಇನ್ನೂ ಶಕ್ತಿ ಬೆಳೆಸ್ಕೊಂಡು ಮತ್ತೆ ಬಾ!","ಈ ರಾವಣನ್ನ ಅಷ್ಟು ಸುಲಭವಾಗಿ ಸೋಲಿಸೋಕಾಗಲ್ಲ!"],"win":["ಇಲ್ಲ... ಇದು ಸಾಧ್ಯವೇ ಇಲ್ಲ! {name}, ನೀನು ರಾವಣನನ್ನೇ ಸೋಲಿಸಿಬಿಟ್ಟೆ!"]},"gloss":{"attract":["Who has the guts to stand up to Ravan? Come, fight with me!"],"challenge":["{name}, you came to war with me? Show me your strength!","{name}, ten heads in front of you! Let us just see who wins!"],"miss":["Missed the target! Is this all your hands can do?","You cannot even hit a head this big?","{name}, aim properly and shoot!"],"hit":["One head fell? I still have plenty more!","Ouch! You will suffer for this!"],"navel":["{name}, the nectar of immortality is in my navel! You cannot even touch it!"],"lose":["{name}, you lost! Build up more strength and come back!","This Ravan cannot be defeated so easily!"],"win":["No... this is just not possible! {name}, you have defeated Ravan himself!"]}},{"code":"ml","name":"Malayalam","nameNative":"മലയാളം","regions":"Kerala, Kochi, Thiruvananthapuram, Kozhikode","ttsLangs":["ml-IN"],"noName":"വില്ലാളി","lines":{"attract":["രാവണനോട് മുട്ടാൻ ചങ്കൂറ്റമുള്ളവരുണ്ടോ? വാ, മുട്ടി നോക്ക്!"],"challenge":["{name}, എന്നോട് യുദ്ധത്തിന് വന്നതാണോ? നിന്റെ ശക്തി കാണിക്ക്!","{name}, നിനക്കെതിരെ പത്ത് തല! ആര് ജയിക്കുമെന്ന് നോക്കാം!"],"miss":["ഉന്നം തെറ്റി! ഇത്രയേ ഉള്ളോ നിന്റെ കഴിവ്?","ഇത്രയും വലിയ തലയിൽ പോലും നിനക്ക് കൊള്ളിക്കാൻ പറ്റുന്നില്ലേ?","{name}, ശരിക്ക് ഉന്നം നോക്കി എയ്യ്!"],"hit":["ഒരു തല പോയോ? സാരമില്ല, ഇനിയും ഇഷ്ടം പോലെ ഉണ്ട്!","അയ്യോ! ഇതിന് നീ അനുഭവിക്കും!"],"navel":["{name}, എന്റെ നാഭിയിലാണ് അമൃത്! അതിൽ തൊടാൻ പോലും നിനക്ക് പറ്റില്ല!"],"lose":["{name}, നീ തോറ്റു! കുറച്ചൂടെ ശക്തിയൊക്കെ ആയിട്ട് വാ!","ഈ രാവണനെ അത്ര എളുപ്പം തോൽപ്പിക്കാൻ പറ്റില്ല!"],"win":["ഇല്ല... ഇത് അസാധ്യം! {name}, നീ രാവണനെ തോൽപ്പിച്ചുകളഞ്ഞല്ലോ!"]},"gloss":{"attract":["Is there anyone with the guts to take on Ravan? Come, try taking me on!"],"challenge":["{name}, you have come to fight me? Show your strength!","{name}, ten heads against you! Let us see who wins!"],"miss":["Missed the aim! Is that all your skill is?","You cannot hit even a head this big?","{name}, aim properly and shoot!"],"hit":["One head gone? No matter, I still have plenty!","Ouch! You will suffer for this!"],"navel":["{name}, the nectar of immortality is in my navel! You cannot even touch it!"],"lose":["{name}, you lost! Come back once you have a bit more strength!","This Ravan cannot be defeated that easily!"],"win":["No... this is impossible! {name}, you have actually defeated Ravan!"]}},{"code":"en","name":"English","nameNative":"English","regions":"Everyone","ttsLangs":["en-IN","en-GB","en-US","en"],"noName":"warrior","lines":{"attract":["Who dares to fight Ravan? Come on, take me on!"],"challenge":["{name}, so you have come to fight me? Show me your strength!","Ten heads against you, {name}. Let us see who wins!"],"miss":["Missed! Is that all you have got?","You cannot even hit a head this big?","Aim properly, {name}!"],"hit":["So one head fell? I have plenty more!","Ouch! You will pay for that!"],"navel":["My navel holds the nectar of immortality, {name}. You will never hit it!"],"lose":["You lost, {name}! Come back when you are stronger!","Ravan cannot be defeated so easily!"],"win":["No... impossible! {name} has defeated Ravan!"]},"gloss":{"attract":["Who dares to fight Ravan? Come on, take me on!"],"challenge":["{name}, so you have come to fight me? Show me your strength!","Ten heads against you, {name}. Let us see who wins!"],"miss":["Missed! Is that all you have got?","You cannot even hit a head this big?","Aim properly, {name}!"],"hit":["So one head fell? I have plenty more!","Ouch! You will pay for that!"],"navel":["My navel holds the nectar of immortality, {name}. You will never hit it!"],"lose":["You lost, {name}! Come back when you are stronger!","Ravan cannot be defeated so easily!"],"win":["No... impossible! {name} has defeated Ravan!"]}}];
 const LANG_BY_CODE = Object.fromEntries(LANGS.map((l) => [l.code, l]));
@@ -530,6 +545,9 @@ function loadSettings() {
   s.lang = LANG_BY_CODE[s.lang] ? s.lang : 'hi';
   s.lastState = STATE_BY_CODE[s.lastState] ? s.lastState : '';
   s.lastLang = LANG_BY_CODE[s.lastLang] ? s.lastLang : '';
+  s.voices = s.voices && typeof s.voices === 'object' && !Array.isArray(s.voices)
+    ? Object.fromEntries(Object.entries(s.voices).filter(([k, v]) => LANG_BY_CODE[k] && typeof v === 'string' && v).map(([k, v]) => [k, v.slice(0, 300)])) : {};
+  s.voiceFx = s.voiceFx !== false;
   s.stall = typeof s.stall === 'string' ? s.stall.slice(0, 40) : DEFAULTS.stall;
   s.prize = typeof s.prize === 'string' ? s.prize.slice(0, 60) : DEFAULTS.prize;
   return s;
@@ -556,7 +574,7 @@ addEventListener('storage', (e) => {
 
 /* ================= sound (synthesised, no files) ================= */
 const Sound = (() => {
-  let ac = null, master = null, noiseBuf = null, lastFw = 0, cur = null, lastNodes = null;   // cur: the laugh now sounding
+  let ac = null, master = null, noiseBuf = null, lastFw = 0, cur = null, lastNodes = null, voiceNow = null;   // cur: the laugh now sounding
   let clipUrl = null, clipBuf = null, clipGain = 1, clipPending = null;   // the owner's own laugh recording, if any
   function init() {
     if (ac) return;
@@ -750,6 +768,48 @@ const Sound = (() => {
       return start - now + dur;
     },
     laughing: () => !!(ac && cur && ac.currentTime >= cur.start && ac.currentTime < cur.end),
+    // decode a recording and find where the voice starts and stops, so mic clicks and silence are skipped
+    decodeVoice(bytes) {
+      return new Promise((res, rej) => {
+        if (!ac) { rej(new Error('no audio')); return; }
+        let settled = false;
+        const done = (b) => { if (!settled) { settled = true; res(b); } }, fail = (e) => { if (!settled) { settled = true; rej(e || new Error('decode failed')); } };
+        try { const p = ac.decodeAudioData(bytes, done, fail); if (p && p.then) p.then(done, fail); } catch (e) { fail(e); }
+      }).then((b) => {
+        const chs = Array.from({ length: b.numberOfChannels }, (_, c) => b.getChannelData(c)), n = b.length;
+        const amp = (i) => { let m = 0; for (const d of chs) { const v = Math.abs(d[i]); if (v > m) m = v; } return m; };   // loudest channel at each moment
+        let peak = 0; for (let i = 0; i < n; i++) { const v = amp(i); if (v > peak) peak = v; }
+        if (!(peak > 0.01)) throw new Error('silent');
+        const th = peak * 0.08; let a = 0, z = n - 1;
+        while (a < n && amp(a) < th) a++;
+        while (z > a && amp(z) < th) z--;
+        const pad = Math.round(0.06 * b.sampleRate), from = Math.max(0, a - pad), to = Math.min(n, z + pad);
+        const dur = (to - from) / b.sampleRate;
+        if (dur < 0.25) throw new Error('too short');
+        if (dur > 12) throw new Error('too long');
+        const cut = ac.createBuffer(b.numberOfChannels, to - from, b.sampleRate);   // keep only the voice, not the silence around it
+        chs.forEach((d, c) => cut.getChannelData(c).set(d.subarray(from, to)));
+        return { buf: cut, start: 0, dur, gain: Math.min(6, 0.9 / peak) };
+      });
+    },
+    // play a recorded line; with the effect it is slowed a touch (which also deepens it) and gets Ravan's echo
+    playVoice(clip, fx) {
+      if (!ok()) return 0;
+      try { if (voiceNow) { voiceNow.g.gain.setTargetAtTime(0, ac.currentTime, 0.03); voiceNow.src.stop(ac.currentTime + 0.12); } } catch (e) { /* already stopping */ }
+      const K = kit(ac, master), t = ac.currentTime + 0.03, rate = fx ? 0.86 : 1;
+      const src = ac.createBufferSource(); src.buffer = clip.buf; src.playbackRate.value = rate;
+      const chest = ac.createBiquadFilter(); chest.type = 'lowshelf'; chest.frequency.value = 220; chest.gain.value = fx ? 5 : 0;
+      const g = ac.createGain(); g.gain.value = clip.gain * 0.8;
+      src.connect(chest); chest.connect(g); g.connect(master);
+      if (fx) { const send = ac.createGain(); send.gain.value = 0.55; g.connect(send); send.connect(K.send); }
+      const len = clip.dur / rate;
+      src.start(t, clip.start, clip.dur); 
+      voiceNow = { src, g, end: t + len };
+      src.onended = () => { if (voiceNow && voiceNow.src === src) voiceNow = null; };
+      return len + 0.03;
+    },
+    voicePlaying: () => !!(ac && voiceNow && ac.currentTime < voiceNow.end),
+    stopVoice() { try { if (voiceNow && ac) { voiceNow.g.gain.setTargetAtTime(0, ac.currentTime, 0.02); voiceNow.src.stop(ac.currentTime + 0.1); } } catch (e) { /* ignore */ } voiceNow = null; },
     setOn(on) { if (ac && master) { try { master.gain.cancelScheduledValues(ac.currentTime); master.gain.setTargetAtTime(on ? 0.6 : 0, ac.currentTime, 0.02); } catch (e) { /* ignore */ } } },
     tick() { if (!ok()) return; tone('square', 1100, 1100, ac.currentTime, 0.002, 0.08, 0.04); },
     roar() { if (!ok()) return; const t = ac.currentTime;
@@ -774,30 +834,54 @@ if (storedClip) Sound.setClip(storedClip);                 // decoded on the fir
 const Voice = (() => {
   const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
   let voices = [], unlocked = false, current = null;
+  let onChange = null;
   const load = () => { try { voices = (synth && synth.getVoices()) || []; } catch (e) { voices = []; } };
-  if (synth) { load(); try { if (synth.addEventListener) synth.addEventListener('voiceschanged', load); else synth.onvoiceschanged = load; } catch (e) { /* older browser */ } }
+  const changed = () => { load(); if (onChange) onChange(); };
+  if (synth) { load(); try { if (synth.addEventListener) synth.addEventListener('voiceschanged', changed); else synth.onvoiceschanged = changed; } catch (e) { /* older browser */ } }
   const norm = (t) => String(t || '').toLowerCase().replace(/_/g, '-');
-  function pick(tags) {
+  // voice names say nothing official about gender, but the common Indian voices are well known
+  const MALE = /\b(male|man|hemant|madhur|ravi|prabhat|valluvar|mohan|gagan|midhun|manohar|niranjan|bashkar|sukant|salman|asad|ojas|priyom|sagar|rishi|aarav|kunal|rehaan|arjun|kumar)\b/i;
+  const FEMALE = /\b(female|woman|kalpana|swara|heera|lekha|neerja|pallavi|shruti|sapna|sobhana|aarohi|dhwani|tanishaa|gul|uzma|vaani|subhasini|yashica|hemkala|aditi|veena|kajal|ananya|google)\b/i;
+  let onlineFailed = false;
+  // a man's voice first; online voices only while the internet works (on-device voices keep working offline)
+  const rank = (v) => (MALE.test(v.name) ? 0 : FEMALE.test(v.name) ? 4 : 2) + (v.localService ? 0 : (navigator.onLine !== false && !onlineFailed ? 1 : 10));
+  function listFor(tags) {
+    if (!voices.length) load();
+    const seen = new Set(), out = [];
+    for (const tag of tags || []) {
+      const base = norm(tag).split('-')[0];
+      for (const v of voices) if (norm(v.lang).split('-')[0] === base && !seen.has(v.voiceURI)) { seen.add(v.voiceURI); out.push(v); }
+    }
+    return out;
+  }
+  function auto(tags) {
     if (!voices.length) load();
     for (const tag of tags || []) {
       const t = norm(tag), base = t.split('-')[0];
       const exact = voices.filter((v) => norm(v.lang) === t);
       const list = exact.length ? exact : voices.filter((v) => norm(v.lang).split('-')[0] === base);
-      if (list.length) return list.find((v) => v.localService) || list[0];   // on-device voices keep working offline
+      if (list.length) return list.slice().sort((a, b) => rank(a) - rank(b))[0];
     }
     return null;
   }
-  function speak(text, tags, onDone) {
+  function pick(tags, code) {
+    const chosen = code && settings.voices[code];
+    if (chosen === 'none') return null;
+    if (chosen) { if (!voices.length) load(); const v = voices.find((x) => x.voiceURI === chosen); if (v) return v; }
+    return auto(tags);
+  }
+  function speak(text, tags, onDone, code) {
     let done = false;
     const finish = (ok) => { if (done) return; done = true; if (onDone) onDone(ok); };
     if (!synth || !unlocked || !settings.sound || !settings.speak) return false;
-    const v = pick(tags);
+    const v = pick(tags, code);
     if (!v) return false;
     try {
       if (synth.speaking || synth.pending) synth.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.voice = v; u.lang = v.lang; u.pitch = 0.3; u.rate = 0.92; u.volume = 1;   // as deep as the voice allows
-      u.onend = () => finish(true); u.onerror = () => finish(false);
+      u.voice = v; u.lang = v.lang; u.pitch = MALE.test(v.name) ? 0.55 : 0.3; u.rate = 0.9; u.volume = 1;   // deep, but still clear for a man's voice
+      u.onend = () => finish(true);
+      u.onerror = (e) => { if (!v.localService && e && e.error !== 'interrupted' && e.error !== 'canceled') onlineFailed = true; finish(false); };
       current = u;                                          // keep a reference: Chrome drops events of collected utterances
       synth.speak(u);
       setTimeout(() => finish(true), (1.6 + text.length * 0.12) * 1000);   // some Android browsers never send onend
@@ -805,8 +889,9 @@ const Voice = (() => {
     } catch (e) { return false; }
   }
   return {
-    speak, pick, supported: !!synth,
+    speak, pick, auto, listFor, supported: !!synth, isMale: (v) => !!v && MALE.test(v.name),
     unlock() { unlocked = true; load(); },
+    onVoices(fn) { onChange = fn; },
     cancel() { try { if (synth) synth.cancel(); } catch (e) { /* ignore */ } current = null; },
     speaking() { try { return !!(synth && (synth.speaking || synth.pending)); } catch (e) { return false; } }
   };
@@ -825,6 +910,67 @@ let lineOverrides = (() => {
   }
   return out;
 })();
+const ClipStore = (() => {
+  let dbp = null;
+  function db() {
+    if (!dbp) {
+      dbp = new Promise((res, rej) => {
+        try {
+          const r = indexedDB.open('ravan10', 1);
+          r.onupgradeneeded = () => r.result.createObjectStore('lines');
+          r.onsuccess = () => { const d = r.result; d.onclose = d.onversionchange = () => { try { d.close(); } catch (e) { /* closed */ } dbp = null; }; res(d); };
+          r.onerror = () => rej(r.error);
+        } catch (e) { rej(e); }
+      });
+      dbp.catch(() => { dbp = null; });                      // try a fresh connection next time
+    }
+    return dbp;
+  }
+  const run = (mode, fn) => db().then((d) => new Promise((res, rej) => {
+    let t, req;
+    try { t = d.transaction('lines', mode); req = fn(t.objectStore('lines')); } catch (e) { dbp = null; rej(e); return; }   // a lost connection reconnects next time
+    t.oncomplete = () => res(req ? req.result : undefined);
+    t.onerror = () => { dbp = null; rej(t.error); }; t.onabort = () => { dbp = null; rej(t.error); };
+  }));
+  return {
+    put: (k, blob) => run('readwrite', (st) => st.put(blob, k)),
+    del: (k) => run('readwrite', (st) => st.delete(k)),
+    get: (k) => run('readonly', (st) => st.get(k)),
+    keys: () => run('readonly', (st) => st.getAllKeys()).then((ks) => ks || [])
+  };
+})();
+const clipKey = (code, key, i) => `${code}|${key}|${i}`;
+const Recorded = (() => {
+  const clips = new Map();                                 // decoded, ready to play
+  let saved = new Set();                                   // what is stored on this device
+  const inflight = new Map();
+  async function refresh() { try { saved = new Set(await ClipStore.keys()); } catch (e) { /* storage unavailable: keep what we knew */ } return saved; }
+  function prepare(code) {                                 // decode one language's recordings before a game
+    if (!inflight.has(code)) inflight.set(code, doPrepare(code).finally(() => inflight.delete(code)));
+    return inflight.get(code);
+  }
+  async function doPrepare(code) {
+    await refresh();
+    if (!Sound.ready()) await Sound.resume();
+    for (const k of saved) {
+      if (!k.startsWith(code + '|') || clips.has(k)) continue;
+      try { const blob = await ClipStore.get(k); if (blob) clips.set(k, await Sound.decodeVoice(await blob.arrayBuffer())); } catch (e) { /* unplayable: the line is spoken or shown instead */ }
+    }
+  }
+  return {
+    refresh, prepare,
+    isSaved: (k) => saved.has(k),
+    get: (k) => clips.get(k) || null,
+    async store(k, blob) {
+      const clip = await Sound.decodeVoice(await blob.arrayBuffer());
+      clips.set(k, clip);                                  // plays until the page closes, even if it can't be saved
+      try { await ClipStore.put(k, blob); } catch (e) { const err = new Error('store'); err.clip = clip; throw err; }
+      saved.add(k); return clip;
+    },
+    async remove(k) { await ClipStore.del(k); saved.delete(k); clips.delete(k); }
+  };
+})();
+
 const isEdited = (L, key) => !!(lineOverrides[L.code] && lineOverrides[L.code][key] && lineOverrides[L.code][key].length);
 const linesOf = (L, key) => (isEdited(L, key) ? lineOverrides[L.code][key] : (L.lines && L.lines[key]) || []);
 const fillName = (t, name) => String(t).split('{name}').join(name).replace(/\s+([,!?.])/g, '$1').trim();
@@ -839,10 +985,12 @@ const Ravan = (() => {
     opts = opts || {};
     const L = opts.lang || LANG_BY_CODE[game.player.lang] || LANG_BY_CODE[settings.lang] || LANGS[0];
     const list = linesOf(L, key);
-    if (!list.length || (!opts.force && Voice.speaking())) { if (opts.then) opts.then(false); return { shown: false, spoken: false }; }
+    if (!list.length || (!opts.force && busy())) { if (opts.then) opts.then(false, false); return { shown: false, spoken: false }; }
     const k = L.code + ':' + key;
-    let i = typeof opts.index === 'number' ? opts.index % list.length : Math.floor(Math.random() * list.length);
-    if (typeof opts.index !== 'number' && list.length > 1 && i === lastIdx[k]) i = (i + 1) % list.length;
+    const recordedIdx = list.map((_, j) => j).filter((j) => Recorded.get(clipKey(L.code, key, j)));
+    const pool = recordedIdx.length ? recordedIdx : list.map((_, j) => j);   // prefer lines someone has recorded
+    let i = typeof opts.index === 'number' ? opts.index % list.length : pool[Math.floor(Math.random() * pool.length)];
+    if (typeof opts.index !== 'number' && pool.length > 1 && i === lastIdx[k]) i = pool[(pool.indexOf(i) + 1) % pool.length];
     lastIdx[k] = i;
     const typed = opts.name !== undefined ? opts.name : game.player.name;
     const text = fillName(list[i], typed || L.noName || '');
@@ -850,13 +998,21 @@ const Ravan = (() => {
     lineEl.textContent = text; lineEl.lang = (L.ttsLangs && L.ttsLangs[0]) || L.code; lineEl.dir = L.code === 'ur' ? 'rtl' : 'auto';
     glossEl.textContent = g ? fillName(g, typed || 'warrior') : ''; glossEl.hidden = !g;
     box.classList.add('show'); clearTimeout(hideTimer);
-    const my = ++seq;
-    const spoken = Voice.speak(text, L.ttsLangs, (ok) => { if (my === seq) hide(0.9); if (opts.then) opts.then(ok); });
-    if (!spoken) { hide(Math.max(2.6, 1 + text.length * 0.07)); if (opts.then) opts.then(false); }
+    const my = ++seq, readTime = Math.max(2.6, 1 + text.length * 0.07);
+    const finish = (ok) => { const current = my === seq; if (current) hide(ok ? 0.9 : readTime); if (opts.then) opts.then(ok, !current); };
+    Voice.cancel(); Sound.stopVoice();
+    const clip = !opts.tts && settings.speak && settings.sound ? Recorded.get(clipKey(L.code, key, i)) : null;
+    if (clip) {
+      const len = Sound.playVoice(clip, settings.voiceFx);
+      if (len) { setTimeout(() => finish(true), len * 1000); return { shown: true, spoken: true }; }
+    }
+    const spoken = Voice.speak(text, L.ttsLangs, finish, L.code);
+    if (!spoken) { hide(readTime); if (opts.then) opts.then(false, false); }
     return { shown: true, spoken };
   }
-  function stop() { seq++; Voice.cancel(); hide(0); }
-  return { say, stop };
+  const busy = () => Voice.speaking() || Sound.voicePlaying();
+  function stop() { seq++; Voice.cancel(); Sound.stopVoice(); hide(0); }
+  return { say, stop, busy };
 })();
 
 /* ================= view & sprites ================= */
@@ -1256,7 +1412,7 @@ function showTitle() {
 function requestStart(samePlayer) {
   if (game.phase !== 'title' && game.phase !== 'end') return;
   Sound.init(); Sound.resume(); keepAwake(); Voice.unlock();
-  if (!settings.askJoin) { game.player = { name: '', state: '', lang: settings.lang }; startGame(); return; }
+  if (!settings.askJoin) { game.player = { name: '', state: '', lang: settings.lang }; Recorded.prepare(settings.lang).catch(() => {}); startGame(); return; }
   if (samePlayer && (game.player.name || game.player.state)) { startGame(); return; }
   openJoin();
 }
@@ -1278,8 +1434,7 @@ function startGame() {
     }
   };
   // Ravan dares the player by name in their language, then laughs
-  const said = Ravan.say('challenge', { force: true, then: (ok) => { if (ok && (game.phase === 'countdown' || game.phase === 'play')) laughNow(); } });
-  if (!said.spoken) laughNow();
+  const said = Ravan.say('challenge', { force: true, then: (ok, cut) => { if (!cut && (game.phase === 'countdown' || game.phase === 'play')) laughNow(); } });
   game.countLen = said.shown ? 2.4 : 1.05;               // give the player a moment to read the challenge
   banner('Ready…', 'Tap where the arrow should land', game.countLen - 0.05);
 }
@@ -1320,6 +1475,7 @@ function openJoin() {
   $('joinState').value = settings.lastState || '';
   joinLang = '';
   renderLangChoice(); updatePreview();
+  if (joinLang) Recorded.prepare(joinLang).catch(() => {});
   showOnly(ui.join);
   setTimeout(() => $('joinName').focus({ preventScroll: true }), 60);
   armJoinIdle();
@@ -1412,7 +1568,7 @@ function miss(a) {
     Sound.whiff();
   }
   addText(a.tx, a.ty - 30, 'Miss', '#d9c6dd', 26);
-  if (T - game.lastLaugh > 2.2 && !Voice.speaking()) {
+  if (T - game.lastLaugh > 2.2 && !Ravan.busy()) {
     game.lastLaugh = T; game.missN++;
     const c = headPos(game.heads.find((h) => h.alive) ? nearestAlive(a.tx) : 4);
     const r = game.missN % 2 === 1 ? Ravan.say('miss') : { shown: false, spoken: false };   // every other miss he mocks in words
@@ -1447,8 +1603,8 @@ function fail(reason) {
   const c = headPos(game.heads.find((h) => h.alive) ? nearestAlive(game.effX) : 4);
   if (game.heads.some((h) => h.alive)) addText(c.x, c.y - 100, 'Ha ha ha ha!', '#ff7a1a', 44);
   banner(reason === 'time' ? "Time's up!" : 'Out of arrows!', 'Ravan survives this time', 2.2);
-  const r = Ravan.say('lose', { force: true, then: (ok) => { if (ok) game.laughT = Math.max(game.laughT, Sound.laugh('big')); } });
-  game.laughT = r.spoken ? 2.4 : Math.max(2.4, Sound.laugh('big'));
+  Ravan.say('lose', { force: true, then: (ok, cut) => { if (!cut) game.laughT = Math.max(game.laughT, Sound.laugh('big')); } });
+  game.laughT = Math.max(game.laughT, 2.4);
 }
 
 function showEnd() {
@@ -1614,7 +1770,10 @@ function update(dt) {
       if (!ui.title.hidden) {                              // not while the owner is in Settings
         game.attractN++;
         if (game.attractN % 2 === 0) Ravan.say('attract', { lang: LANGS[(game.attractN / 2) % LANGS.length], name: '' });
-        else { const d = Sound.laugh('taunt'); if (d) game.laughT = d; }
+        else {
+          const d = Sound.laugh('taunt'); if (d) game.laughT = d;
+          Recorded.prepare(LANGS[((game.attractN + 1) / 2) % LANGS.length].code).catch(() => {});   // decode the next dare's language ahead of time
+        }
       }
     }
   }
@@ -1886,9 +2045,12 @@ $('joinForm').addEventListener('submit', (e) => {
   const st = $('joinState').value;
   game.player = { name: cleanName($('joinName').value), state: STATE_BY_CODE[st] ? st : '', lang: LANG_BY_CODE[joinLang] ? joinLang : settings.lang };
   settings.lastState = game.player.state; settings.lastLang = game.player.lang; saveSettings();
+  Recorded.prepare(game.player.lang).catch(() => {});
   startGame();
 });
 $('joinBack').addEventListener('click', showTitle);
+$('langChoice').addEventListener('click', () => { if (joinLang) Recorded.prepare(joinLang).catch(() => {}); });
+$('joinState').addEventListener('change', () => { if (joinLang) Recorded.prepare(joinLang).catch(() => {}); });
 $('homeBtn').addEventListener('click', showTitle);
 $('pauseBtn').addEventListener('click', pauseGame);
 $('resumeBtn').addEventListener('click', resumeGame);
@@ -1918,7 +2080,7 @@ addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { pauseGame(); Ravan.stop(); }
+  if (document.hidden) { pauseGame(); Ravan.stop(); stopRec(); }
   else { lastFrame = performance.now(); if (wakeWanted) keepAwake(); }
 });
 
@@ -1962,63 +2124,219 @@ function voiceSummary() {
   if (!Voice.supported) return "This browser cannot speak, so Ravan's lines show on screen only.";
   const own = [], near = [], none = [];
   for (const L of LANGS) {
-    const v = Voice.pick(L.ttsLangs);
+    const v = Voice.pick(L.ttsLangs, L.code);
     if (!v) none.push(L.name);
     else if (String(v.lang).toLowerCase().split(/[-_]/)[0] === String(L.ttsLangs[0]).toLowerCase().split('-')[0]) own.push(L.name);
     else near.push(L.name);
   }
   return [own.length ? `Spoken in its own voice: ${own.join(', ')}.` : 'This device has no voices for these languages yet.',
     near.length ? `Spoken with a nearby language's voice: ${near.join(', ')}.` : '',
-    none.length ? `On screen only: ${none.join(', ')}.` : ''].filter(Boolean).join(' ');
+    none.length ? `On screen only: ${none.join(', ')}.` : '',
+    "If Ravan sounds like a woman, press Edit Ravan's lines to choose another voice or record his lines in a real voice."].filter(Boolean).join(' ');
 }
 for (const L of LANGS) { const o = document.createElement('option'); o.value = L.code; o.textContent = `${L.nameNative} · ${L.name}`; $('setLang').appendChild(o); }
 (() => { const sel = $('joinState'), first = document.createElement('option'); first.value = ''; first.textContent = 'Choose your state'; sel.appendChild(first);
   for (const st of STATES) { const o = document.createElement('option'); o.value = st.code; o.textContent = st.name; sel.appendChild(o); } })();
 
-/* line editor, so students can correct Ravan's lines in their own language */
-function openLines() {
-  readSettings();
+/* line editor: students fix Ravan's lines, pick a voice, or record the lines in a real voice */
+let editingLang = '', rec = null, uploadTarget = null, linesDirty = false;
+const lineStatus = (t) => { $('linesStatus').textContent = t; };
+const isAndroid = /Android/i.test(navigator.userAgent || '');
+async function openLines() {
+  readSettings(); Sound.init(); Sound.resume(); Voice.unlock();
   const sel = $('linesLang');
   if (!sel.options.length) for (const L of LANGS) { const o = document.createElement('option'); o.value = L.code; o.textContent = `${L.nameNative} · ${L.name}`; sel.appendChild(o); }
   sel.value = settings.lang;
-  renderLineFields();
+  $('linesFields').textContent = ''; editingLang = '';
   showOnly(ui.lines);
   setTimeout(() => sel.focus({ preventScroll: true }), 30);
+  await loadLangForEditing();
 }
-function renderLineFields() {
+// show the fields straight away (from the quick list of saved recordings), and decode the recordings in the background
+async function loadLangForEditing() {
+  const code = $('linesLang').value;
+  await Promise.race([Recorded.refresh(), new Promise((r) => setTimeout(r, 1500))]);
+  if ($('linesLang').value !== code || ui.lines.hidden) return;
+  renderLineFields();
+  Recorded.prepare(code).catch(() => {});
+}
+function renderVoiceChoice(L) {
+  const sel = $('linesVoice'), autoV = Voice.auto(L.ttsLangs), all = Voice.listFor(L.ttsLangs);
+  sel.textContent = '';
+  const add = (value, text) => { const o = document.createElement('option'); o.value = value; o.textContent = text; sel.appendChild(o); };
+  add('', autoV ? `Automatic: ${autoV.name}` : 'Automatic (no voice for this language on this device)');
+  for (const v of all) add(v.voiceURI, `${v.name}${v.localService ? '' : ' (needs internet)'}`);
+  add('none', 'No voice: subtitles and laugh only');
+  const want = settings.voices[L.code] || '';
+  sel.value = [...sel.options].some((o) => o.value === want) ? want : '';
+  const v = Voice.pick(L.ttsLangs, L.code), anyMale = all.some(Voice.isMale);
+  const advice = anyMale ? "If it sounds like a woman, pick a man's voice above or record the lines below."
+    : isAndroid ? "On Android the voice is set in the tablet's own settings (Accessibility, Text-to-speech output, the engine's settings, Install voice data, then the language). Or record the lines below."
+    : "This device has no man's voice for this language, so record the lines below for a real Ravan voice.";
+  $('linesVoiceHint').textContent = !Voice.supported ? "This browser has no speaking voices, so record Ravan's lines below."
+    : v ? (Voice.isMale(v) ? `Ravan speaks with ${v.name}, a man's voice.` : `Ravan speaks with ${v.name}. ${advice}`)
+    : 'No voice for this language here, so lines show as subtitles. Record them below to hear Ravan.';
+}
+function renderLineFields(focusId) {
   const L = LANG_BY_CODE[$('linesLang').value] || LANGS[0], box = $('linesFields');
+  editingLang = L.code; linesDirty = false;
+  renderVoiceChoice(L);
+  $('setVoiceFx').checked = settings.voiceFx;
   box.textContent = '';
   for (const key of LINE_KEYS) {
-    const lab = document.createElement('label'); lab.htmlFor = 'line-' + key; lab.append(LINE_LABELS[key]);
-    if (L.code !== 'en' && L.gloss && L.gloss[key]) { const sm = document.createElement('small'); sm.textContent = 'Original meaning: ' + L.gloss[key].join(' / '); lab.appendChild(sm); }
-    const ta = document.createElement('textarea'); ta.className = 'field'; ta.id = 'line-' + key; ta.rows = Math.max(2, (L.lines[key] || []).length);
-    ta.value = linesOf(L, key).join('\n'); ta.lang = (L.ttsLangs && L.ttsLangs[0]) || L.code; if (L.code === 'ur') ta.dir = 'rtl';
-    lab.appendChild(ta); box.appendChild(lab);
+    const group = document.createElement('fieldset'); group.className = 'line-group';
+    const legend = document.createElement('legend'); legend.textContent = LINE_LABELS[key]; group.appendChild(legend);
+    const now = linesOf(L, key), orig = L.lines[key] || [];
+    const rows = Math.max(orig.length, now.length);        // keep extra lines added with the old editor
+    for (let i = 0; i < rows; i++) {
+      const row = document.createElement('div'); row.className = 'line-row';
+      const where = `${LINE_LABELS[key]}, line ${i + 1}`;
+      const input = document.createElement('input'); input.className = 'field'; input.id = `line-${key}-${i}`; input.maxLength = 120;
+      input.value = now[i] || orig[i] || ''; input.lang = (L.ttsLangs && L.ttsLangs[0]) || L.code; if (L.code === 'ur') input.dir = 'rtl';
+      input.setAttribute('aria-label', where);
+      row.appendChild(input);
+      if (L.code !== 'en' && i < orig.length && L.gloss && L.gloss[key] && L.gloss[key][i]) { const m = document.createElement('small'); m.textContent = 'Meaning: ' + L.gloss[key][i]; row.appendChild(m); }
+      const k = clipKey(L.code, key, i), has = Recorded.isSaved(k) || !!Recorded.get(k);
+      const bar = document.createElement('div'); bar.className = 'rec-row';
+      const btn = (id, label, aria, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.id = id; b.textContent = label; b.setAttribute('aria-label', `${aria}: ${where}`); b.addEventListener('click', fn); bar.appendChild(b); return b; };
+      const recBtn = btn(`rec-${key}-${i}`, 'Record', 'Record', () => toggleRec(recBtn, L, key, i));
+      if (rec && rec.k === k) { rec.btn = recBtn; recBtn.textContent = 'Stop'; recBtn.classList.add('recording'); recBtn.setAttribute('aria-label', `Stop recording: ${where}`); }
+      btn(`up-${key}-${i}`, 'Upload', 'Upload a recording', () => { uploadTarget = { L, key, i }; $('lineUpload').click(); });
+      btn(`play-${key}-${i}`, 'Play', 'Play', () => playLine(L, key, i));
+      const del = btn(`del-${key}-${i}`, 'Delete recording', 'Delete the recording', async () => {
+        saveLines(); await Recorded.remove(k).catch(() => {});
+        renderLineFields(`rec-${key}-${i}`); lineStatus('Recording deleted.');
+      });
+      del.hidden = !has;
+      const state = document.createElement('span'); state.className = 'rec-state' + (has ? ' has' : ''); state.id = `state-${key}-${i}`; state.textContent = has ? 'Recorded' : 'No recording';
+      bar.appendChild(state);
+      row.appendChild(bar); group.appendChild(row);
+    }
+    box.appendChild(group);
   }
-  $('linesStatus').textContent = lineOverrides[L.code] ? 'These lines include changes made on this device.' : 'These are the original lines.';
+  lineStatus(lineOverrides[L.code] ? 'These lines include changes made on this device.' : 'These are the original lines.');
+  if (focusId && $(focusId)) $(focusId).focus({ preventScroll: true });
 }
-function saveLines() {
-  const L = LANG_BY_CODE[$('linesLang').value] || LANGS[0], edited = {};
+// returns true when there was something to save
+function saveLines(force) {
+  const L = LANG_BY_CODE[editingLang];
+  if (!L || !$('linesFields').children.length) return false;
+  if (!force && !linesDirty) return true;
+  const edited = {};
   for (const key of LINE_KEYS) {
-    const arr = $('line-' + key).value.split('\n').map((t) => t.replace(/[<>]/g, '').trim().slice(0, 120)).filter(Boolean).slice(0, 6);
-    if (arr.length && arr.join('\n') !== (L.lines[key] || []).join('\n')) edited[key] = arr;
+    const orig = L.lines[key] || [], arr = [];
+    for (let i = 0; $(`line-${key}-${i}`); i++) {
+      const t = $(`line-${key}-${i}`).value.replace(/[<>]/g, '').trim().slice(0, 120);
+      if (i < orig.length) arr.push(t || orig[i]);        // an emptied original line falls back to the original
+      else if (t) arr.push(t);                           // an emptied extra line is removed
+    }
+    if (arr.join('\n') !== orig.join('\n')) edited[key] = arr.slice(0, 6);
   }
   if (Object.keys(edited).length) lineOverrides[L.code] = edited; else delete lineOverrides[L.code];
   store.set(KEY_LINES, lineOverrides);
-  $('linesStatus').textContent = Object.keys(edited).length ? 'Saved on this device.' : 'These are the original lines.';
+  linesDirty = false;
+  return true;
 }
-function closeLines() { saveLines(); openSettings(); }
+function playLine(L, key, i, tts) {
+  saveLines(); Sound.init(); Voice.unlock();
+  Sound.resume().then(() => {
+    const r = Ravan.say(key, { force: true, lang: L, index: i, name: 'Arjun', tts });
+    if (!r.spoken) lineStatus(settings.sound ? 'No voice or recording for this line yet, so it only shows on screen.' : 'Sound is off in Settings.');
+  });
+}
+function setRowRecorded(key, i, has) {
+  const st = $(`state-${key}-${i}`), del = $(`del-${key}-${i}`);
+  if (st) { st.textContent = has ? 'Recorded' : 'No recording'; st.classList.toggle('has', has); }
+  if (del) del.hidden = !has;
+}
+async function toggleRec(btn, L, key, i) {
+  if (rec) { const same = rec.btn === btn; stopRec(); if (same) return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) { lineStatus('This browser cannot record here. Record the line on a phone and press Upload.'); return; }
+  Sound.init(); Ravan.stop();
+  const k = clipKey(L.code, key, i), where = `${LINE_LABELS[key]}, line ${i + 1}`;
+  const token = rec = { btn, k, mr: null, timer: 0 };      // claimed before the microphone opens, so a second tap stops instead of starting another
+  btn.textContent = 'Stop'; btn.classList.add('recording'); btn.setAttribute('aria-label', `Stop recording: ${where}`);
+  lineStatus('Opening the microphone…');
+  const giveUp = (msg) => { if (rec === token) { rec = null; resetRecBtn(token.btn); } lineStatus(msg); };
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true } }); }
+  catch (e) { giveUp('The microphone is blocked. Allow it for this page, or record on a phone and press Upload.'); return; }
+  if (rec !== token || ui.lines.hidden) { stream.getTracks().forEach((t) => t.stop()); return; }   // stopped or left before the mic opened
+  const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'].find((t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+  let mr;
+  try { mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined); }
+  catch (e) { stream.getTracks().forEach((t) => t.stop()); giveUp('This browser cannot record here. Record the line on a phone and press Upload.'); return; }
+  const chunks = [];
+  mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  mr.onstop = () => { stream.getTracks().forEach((t) => t.stop()); keepClip(L, key, i, new Blob(chunks, { type: mr.mimeType || type || 'audio/webm' }), true); };
+  token.mr = mr;
+  token.timer = setTimeout(() => { if (rec === token) stopRec(); }, 10000);
+  mr.start();
+  lineStatus('Recording. Say the line in a big booming voice and leave out the name, then press Stop.');
+}
+function resetRecBtn(b) {
+  if (!b) return;
+  b.textContent = 'Record'; b.classList.remove('recording');
+  const lbl = b.getAttribute('aria-label') || ''; b.setAttribute('aria-label', lbl.replace(/^Stop recording/, 'Record'));
+}
+function stopRec() {
+  if (!rec) return;
+  const r = rec; rec = null; clearTimeout(r.timer);
+  resetRecBtn(r.btn);
+  if (r.mr) { try { r.mr.stop(); } catch (e) { /* already stopped */ } }
+}
+async function keepClip(L, key, i, blob, fromMic) {
+  const k = clipKey(L.code, key, i);
+  const tell = (msg) => { if (!rec) lineStatus(msg); };   // don't talk over a recording in progress
+  if (!blob || !blob.size) { tell('Nothing was recorded. Try again.'); return; }
+  if (blob.size > 2 * 1024 * 1024) { tell('That recording is too long. Keep each line under about ten seconds.'); return; }
+  Sound.init(); await Sound.resume();
+  let clip, note = '';
+  try { clip = await Recorded.store(k, blob); }
+  catch (e) {
+    const why = e && e.message;
+    if (why === 'store') { clip = e.clip; note = " It couldn't be saved on this device, so it will play only until the page is closed."; }
+    else {
+      tell(why === 'silent' ? 'The recording was silent. Speak closer to the microphone.'
+        : why === 'too short' ? 'That was too short. Say the whole line.'
+        : why === 'too long' ? 'That recording is too long. Keep each line under about ten seconds.'
+        : fromMic ? "That recording couldn't be used. Try again." : "That file couldn't be played. Try an MP3 or M4A recording.");
+      return;
+    }
+  }
+  if (editingLang === L.code && !ui.lines.hidden) setRowRecorded(key, i, true);
+  if (!rec && !ui.lines.hidden && editingLang === L.code) {   // play it back, unless another line is being recorded
+    lineStatus(`Saved a ${clip.dur.toFixed(1)} second recording.${note}`);
+    playLine(L, key, i);
+  }
+}
+function closeLines() { stopRec(); saveLines(); Ravan.stop(); openSettings(); }
+const sameLang = () => editingLang && editingLang === $('linesLang').value;
 $('editLinesBtn').addEventListener('click', openLines);
-$('linesLang').addEventListener('change', renderLineFields);
-$('linesForm').addEventListener('submit', (e) => { e.preventDefault(); saveLines(); });
-$('linesBack').addEventListener('click', closeLines);
-$('linesReset').addEventListener('click', () => { const L = LANG_BY_CODE[$('linesLang').value]; if (L) { delete lineOverrides[L.code]; store.set(KEY_LINES, lineOverrides); renderLineFields(); $('linesStatus').textContent = 'Restored the original lines.'; } });
-$('linesHear').addEventListener('click', () => {
-  saveLines(); Sound.init(); Sound.resume(); Voice.unlock();
-  const L = LANG_BY_CODE[$('linesLang').value] || LANGS[0];
-  const r = Ravan.say('challenge', { force: true, lang: L, index: 0, name: 'Arjun' });
-  if (!r.spoken) $('linesStatus').textContent = 'This device has no voice for this language, so the line shows on screen only.';
+$('linesFields').addEventListener('input', () => { linesDirty = true; });
+$('linesLang').addEventListener('change', () => { stopRec(); saveLines(); $('linesFields').textContent = ''; loadLangForEditing(); });
+$('linesVoice').addEventListener('change', () => {
+  if (!sameLang()) return;
+  const L = LANG_BY_CODE[editingLang], v = $('linesVoice').value;
+  if (v) settings.voices[L.code] = v; else delete settings.voices[L.code];
+  saveSettings(); renderVoiceChoice(L);
+  if (v !== 'none') playLine(L, 'challenge', 0, true);     // let the owner hear the voice itself, not a recording
 });
+$('setVoiceFx').addEventListener('change', () => { settings.voiceFx = $('setVoiceFx').checked; saveSettings(); });
+$('lineUpload').addEventListener('change', () => {
+  const f = $('lineUpload').files && $('lineUpload').files[0];
+  $('lineUpload').value = '';
+  if (f && uploadTarget) keepClip(uploadTarget.L, uploadTarget.key, uploadTarget.i, f, false);
+});
+Voice.onVoices(() => { if (!ui.lines.hidden && sameLang()) renderVoiceChoice(LANG_BY_CODE[editingLang]); });
+$('linesForm').addEventListener('submit', (e) => { e.preventDefault(); lineStatus(saveLines(true) ? 'Saved on this device.' : 'Nothing to save yet.'); });
+$('linesBack').addEventListener('click', closeLines);
+$('linesReset').addEventListener('click', () => {
+  if (!sameLang()) return;
+  delete lineOverrides[editingLang]; store.set(KEY_LINES, lineOverrides);
+  renderLineFields('linesReset'); lineStatus('Restored the original lines. Recordings were kept.');
+});
+$('linesHear').addEventListener('click', () => { if (sameLang()) playLine(LANG_BY_CODE[editingLang], 'challenge', 0); });
 function setLaughStatus(msg) {
   const using = settings.laughMode === 'clip';
   $('laughStatus').textContent = msg || (ownClip
