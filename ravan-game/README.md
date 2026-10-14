@@ -69,6 +69,15 @@ Ravan's loudspeaker echo (untick the box to switch the effect off). Recordings a
 saved on that device and are used in place of the computer voice. A student who can
 do a good Ravan voice can record the main lines of a language in a few minutes.
 
+**Recording many lines at once.** `ravan-lines-to-record.txt` (and the same list as
+`ravan-lines-to-record.csv` for Excel or Numbers) gives every line in every language,
+the file name to save it as, and its meaning. The player's name is already taken out,
+because the game shows it on screen. Record or generate the lines you want, save each
+file with the name shown (for example `bho-challenge-1.mp3`), then press **Import many
+recordings** in the line editor and pick all the files together. The game tells you
+how many it imported and why any were skipped. Use only a voice whose owner has agreed
+to it, such as a student who performs the Ravan voice.
+
 **The computer voice.** Lines that are not recorded are read with the device's own
 text-to-speech voice. The game picks a man's voice where the device has one, and the
 same screen lets you choose the voice for each language and hear it, or choose

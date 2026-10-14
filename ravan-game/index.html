@@ -350,6 +350,11 @@ label.btn { display: inline-flex; align-items: center; box-sizing: border-box; c
     <label class="check" for="setVoiceFx"><input type="checkbox" id="setVoiceFx"> Make recorded lines deep and booming, with Ravan's echo</label>
     <p class="muted">Best of all, record the lines in a big Ramlila voice: press Record, say the line without the name (the name still shows on screen), then press Stop. Or record on a phone and press Upload.</p>
     <input type="file" id="lineUpload" class="file-pick" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm" tabindex="-1" aria-hidden="true">
+    <input type="file" id="bulkUpload" class="file-pick" multiple accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm,.flac" tabindex="-1" aria-hidden="true">
+    <div class="row">
+      <button type="button" class="btn" id="bulkBtn">Import many recordings</button>
+      <span class="voice-info">Name each file by language, moment and line number, such as bho-challenge-1.mp3. Files for any language can be imported together.</span>
+    </div>
     <div id="linesFields" class="lines-panel"></div>
     <p class="voice-info" id="linesStatus" aria-live="polite"></p>
     <div class="row">
@@ -2337,6 +2342,43 @@ $('linesReset').addEventListener('click', () => {
   renderLineFields('linesReset'); lineStatus('Restored the original lines. Recordings were kept.');
 });
 $('linesHear').addEventListener('click', () => { if (sameLang()) playLine(LANG_BY_CODE[editingLang], 'challenge', 0); });
+
+/* import a batch of recordings named like bho-challenge-1.mp3 (language, moment, line number from 1) */
+const IMPORT_RE = /^([a-z]{2,3})[-_ ](attract|challenge|miss|hit|navel|lose|win)[-_ ](\d{1,2})\b[^/\\]*\.(mp3|m4a|aac|wav|ogg|oga|opus|webm|mp4|flac)$/i;
+let importing = false;
+async function importClips(files) {
+  if (importing) return;
+  importing = true; stopRec(); saveLines(); Ravan.stop();
+  Sound.init(); await Sound.resume();
+  let done = 0, notSaved = 0;
+  const skipped = [], langs = new Set();
+  for (const f of files) {
+    const m = IMPORT_RE.exec(String(f.name || '').trim());
+    const L = m && LANG_BY_CODE[m[1].toLowerCase()], key = m && m[2].toLowerCase(), i = m ? parseInt(m[3], 10) - 1 : -1;
+    const count = L ? Math.max((L.lines[key] || []).length, linesOf(L, key).length) : 0;
+    if (!L || i < 0 || i >= count) { skipped.push(`${f.name} (name not recognised)`); continue; }
+    if (f.size > 2 * 1024 * 1024) { skipped.push(`${f.name} (too big)`); continue; }
+    try { await Recorded.store(clipKey(L.code, key, i), f); done++; langs.add(L.name); }
+    catch (e) {
+      if (e && e.message === 'store') { done++; notSaved++; langs.add(L.name); }
+      else skipped.push(`${f.name} (${e && e.message === 'too long' ? 'longer than twelve seconds' : e && e.message === 'silent' ? 'silent' : "can't be played"})`);
+    }
+    lineStatus(`Importing… ${done} of ${files.length}`);
+  }
+  importing = false;
+  if (!ui.lines.hidden && sameLang()) renderLineFields('bulkBtn');
+  lineStatus([
+    done ? `Imported ${done} recording${done === 1 ? '' : 's'} for ${[...langs].join(', ')}.` : 'No recordings were imported.',
+    notSaved ? `${notSaved} could not be saved on this device and will play only until the page is closed.` : '',
+    skipped.length ? `Skipped ${skipped.length}: ${skipped.slice(0, 4).join('; ')}${skipped.length > 4 ? '; …' : ''}. Name files like bho-challenge-1.mp3.` : ''
+  ].filter(Boolean).join(' '));
+}
+$('bulkBtn').addEventListener('click', () => { if (!importing) $('bulkUpload').click(); });
+$('bulkUpload').addEventListener('change', () => {
+  const files = [...($('bulkUpload').files || [])];
+  $('bulkUpload').value = '';
+  if (files.length) importClips(files);
+});
 function setLaughStatus(msg) {
   const using = settings.laughMode === 'clip';
   $('laughStatus').textContent = msg || (ownClip
