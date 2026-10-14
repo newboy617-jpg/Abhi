@@ -40,7 +40,7 @@ hi-lose-2.mp3
   (Ha ha ha! Defeating Ravan is not that easy!)
 hi-win-1.mp3
   नहीं... ये नहीं हो सकता! तूने रावण को हरा दिया!
-  (No... this cannot be! you have defeated Ravan!)
+  (No... this cannot be! You have defeated Ravan!)
 
 ===== भोजपुरी · Bhojpuri (Varanasi, East UP, West Bihar, Chhapra) =====
 bho-attract-1.mp3
@@ -230,7 +230,7 @@ bgc-lose-2.mp3
   (Defeating Ravan is not that easy!)
 bgc-win-1.mp3
   ना... यो ना हो सकै! तन्नै रावण नै हरा दिया!
-  (No... this cannot be! you have defeated Ravan!)
+  (No... this cannot be! You have defeated Ravan!)
 
 ===== राजस्थानी (मारवाड़ी) · Rajasthani (Marwari) (Rajasthan, Jodhpur, Bikaner, Jaisalmer) =====
 raj-attract-1.mp3
@@ -268,7 +268,7 @@ raj-lose-2.mp3
   (Defeating Ravan is not that easy!)
 raj-win-1.mp3
   ना... ओ कोनी हो सकै! थैं रावण नै हरा दियो!
-  (No... this cannot be! you have defeated Ravan!)
+  (No... this cannot be! You have defeated Ravan!)
 
 ===== छत्तीसगढ़ी · Chhattisgarhi (Chhattisgarh, Raipur, Bilaspur, Durg) =====
 hne-attract-1.mp3
@@ -306,7 +306,7 @@ hne-lose-2.mp3
   (Defeating Ravan is not that easy!)
 hne-win-1.mp3
   नहीं... अइसन कइसे हो गे! तैं रावन ल हरा देस!
-  (No... how did this happen! you have defeated Ravan!)
+  (No... how did this happen! You have defeated Ravan!)
 
 ===== ਪੰਜਾਬੀ · Punjabi (Punjab, Amritsar, Ludhiana, Chandigarh) =====
 pa-attract-1.mp3
@@ -344,7 +344,7 @@ pa-lose-2.mp3
   (Defeating Ravan is not that easy!)
 pa-win-1.mp3
   ਨਹੀਂ... ਇਹ ਹੋ ਨਹੀਂ ਸਕਦਾ! ਤੂੰ ਰਾਵਣ ਨੂੰ ਹਰਾ ਦਿੱਤਾ!
-  (No... this cannot be! you have defeated Ravan!)
+  (No... this cannot be! You have defeated Ravan!)
 
 ===== اردو · Urdu (Lucknow, Hyderabad, Delhi, Bhopal) =====
 ur-attract-1.mp3
@@ -382,7 +382,7 @@ ur-lose-2.mp3
   (Defeating Ravan is not that easy!)
 ur-win-1.mp3
   نہیں... یہ ناممکن ہے! تُو نے راون کو ہرا دیا!
-  (No... this is impossible! you have defeated Ravan!)
+  (No... this is impossible! You have defeated Ravan!)
 
 ===== বাংলা · Bengali (Kolkata, West Bengal, Tripura) =====
 bn-attract-1.mp3
@@ -420,7 +420,7 @@ bn-lose-2.mp3
   (Defeating Ravan is not that easy!)
 bn-win-1.mp3
   না... অসম্ভব! তুই রাবণকে হারিয়ে দিলি!
-  (No... impossible! you have defeated Ravan!)
+  (No... impossible! You have defeated Ravan!)
 
 ===== ଓଡ଼ିଆ · Odia (Bhubaneswar, Cuttack, Puri, Odisha) =====
 or-attract-1.mp3
@@ -451,14 +451,14 @@ or-navel-1.mp3
   ମୋ ନାଭିରେ ଅମୃତ ଅଛି! ସେଠି ତୋ ତୀର କେବେ ବି ବାଜିବନି!
   (The nectar is in my navel! Your arrow will never hit there!)
 or-lose-1.mp3
-  ହାରିଗଲୁ! ବଳ ବଢ଼ାଇ ପୁଣି ଆସିବୁ!
+  ତୁ ହାରିଗଲୁ! ବଳ ବଢ଼ାଇ ପୁଣି ଆସିବୁ!
   (You lost! Build your strength and come again!)
 or-lose-2.mp3
   ରାବଣକୁ ହରାଇବା ଏତେ ସହଜ ନୁହେଁ ରେ!
   (Defeating Ravan is not that easy!)
 or-win-1.mp3
   ନା... ଅସମ୍ଭବ! ତୁ ରାବଣକୁ ହରାଇଦେଲୁ!
-  (No... impossible! you have defeated Ravan!)
+  (No... impossible! You have defeated Ravan!)
 
 ===== অসমীয়া · Assamese (Guwahati, Assam, Jorhat, Dibrugarh) =====
 as-attract-1.mp3
@@ -496,7 +496,7 @@ as-lose-2.mp3
   (Defeating Ravan is not that easy, you know!)
 as-win-1.mp3
   নহয়... অসম্ভৱ! তই ৰাৱণক হৰুৱাই দিলি!
-  (No... impossible! you have defeated Ravan!)
+  (No... impossible! You have defeated Ravan!)
 
 ===== नेपाली · Nepali (Sikkim, Darjeeling, Nepal) =====
 ne-attract-1.mp3
@@ -534,7 +534,7 @@ ne-lose-2.mp3
   (Defeating Ravan is not that easy, you know!)
 ne-win-1.mp3
   होइन... असम्भव! तैँले रावणलाई हराइस्!
-  (No... impossible! you have defeated Ravan!)
+  (No... impossible! You have defeated Ravan!)
 
 ===== मराठी · Marathi (Mumbai, Pune, Nagpur, Maharashtra) =====
 mr-attract-1.mp3
@@ -572,7 +572,7 @@ mr-lose-2.mp3
   (Defeating Ravan is not that easy, got it?)
 mr-win-1.mp3
   नाही... हे अशक्य आहे! तू रावणाला हरवलंस!
-  (No... this is impossible! you have defeated Ravan!)
+  (No... this is impossible! You have defeated Ravan!)
 
 ===== ગુજરાતી · Gujarati (Ahmedabad, Surat, Vadodara, Gujarat) =====
 gu-attract-1.mp3
@@ -610,7 +610,7 @@ gu-lose-2.mp3
   (Defeating Ravan is not that easy, you know!)
 gu-win-1.mp3
   ના... અશક્ય! તેં રાવણને હરાવી દીધો!
-  (No... impossible! you have defeated Ravan!)
+  (No... impossible! You have defeated Ravan!)
 
 ===== कोंकणी · Konkani (Goa, Karwar, Mangaluru) =====
 kok-attract-1.mp3
@@ -648,7 +648,7 @@ kok-lose-2.mp3
   (Defeating Ravan is not that easy, got it?)
 kok-win-1.mp3
   ना... अशक्य! तुवें रावणाक हारयलें!
-  (No... impossible! you have defeated Ravan!)
+  (No... impossible! You have defeated Ravan!)
 
 ===== தமிழ் · Tamil (Tamil Nadu, Chennai, Madurai, Puducherry) =====
 ta-attract-1.mp3
@@ -686,7 +686,7 @@ ta-lose-2.mp3
   (Nobody can beat this Ravan that easily!)
 ta-win-1.mp3
   இல்ல... நம்பவே முடியல! நீ ராவணனையே ஜெயிச்சுட்ட!
-  (No... I cannot believe it! you have defeated Ravan himself!)
+  (No... I cannot believe it! You have defeated Ravan himself!)
 
 ===== తెలుగు · Telugu (Hyderabad, Andhra Pradesh, Telangana, Vizag) =====
 te-attract-1.mp3
@@ -724,7 +724,7 @@ te-lose-2.mp3
   (Nobody can defeat this Ravan so easily!)
 te-win-1.mp3
   లేదు... ఇది అసాధ్యం! నువ్వు రావణుణ్ణే ఓడించావు!
-  (No... this is impossible! you have defeated Ravan himself!)
+  (No... this is impossible! You have defeated Ravan himself!)
 
 ===== ಕನ್ನಡ · Kannada (Bengaluru, Mysuru, Karnataka, Hubballi) =====
 kn-attract-1.mp3
@@ -762,7 +762,7 @@ kn-lose-2.mp3
   (This Ravan cannot be defeated so easily!)
 kn-win-1.mp3
   ಇಲ್ಲ... ಇದು ಸಾಧ್ಯವೇ ಇಲ್ಲ! ನೀನು ರಾವಣನನ್ನೇ ಸೋಲಿಸಿಬಿಟ್ಟೆ!
-  (No... this is just not possible! you have defeated Ravan himself!)
+  (No... this is just not possible! You have defeated Ravan himself!)
 
 ===== മലയാളം · Malayalam (Kerala, Kochi, Thiruvananthapuram, Kozhikode) =====
 ml-attract-1.mp3
@@ -800,7 +800,7 @@ ml-lose-2.mp3
   (This Ravan cannot be defeated that easily!)
 ml-win-1.mp3
   ഇല്ല... ഇത് അസാധ്യം! നീ രാവണനെ തോൽപ്പിച്ചുകളഞ്ഞല്ലോ!
-  (No... this is impossible! you have actually defeated Ravan!)
+  (No... this is impossible! You have actually defeated Ravan!)
 
 ===== English · English (Everyone) =====
 en-attract-1.mp3
