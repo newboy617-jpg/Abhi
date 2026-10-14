@@ -2473,6 +2473,9 @@ addEventListener('orientationchange', queueResize);
 resize();
 showTitle();
 keepAwake();
+// started from the stall launcher (which lets the browser play sound before anyone taps):
+// switch sound and Ravan's voice on now, so he can laugh and dare passers-by from the start screen
+if (location.hash === '#stall') { Sound.init(); setTimeout(() => { if (Sound.ready()) Voice.unlock(); }, 400); }
 game.rocketT = 1.2;
 requestAnimationFrame((t) => { lastFrame = t; frame(t); });
 window.__ravan = { Sound, Ravan, Voice, LANGS, STATES, game, view, settings: () => settings, board: () => board, shoot: (x, y) => shoot(x, y, false), headPos, toWorld, buildLaugh: Sound.buildLaugh, hasClip: Sound.hasClip };

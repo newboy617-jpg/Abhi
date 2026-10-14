@@ -96,6 +96,14 @@ one language for everyone.
 
 ## Running it at the stall
 
+**Quickest way on a Mac or Windows laptop:** keep `index.html` and the launcher in the
+same folder and double-click **Start Ravan Game.command** (Mac) or **Start Ravan Game
+(Windows).bat**. It opens the game full screen in Chrome, Edge or Brave like an app,
+with sound allowed from the start, so Ravan laughs and dares passers-by before anyone
+taps. It uses its own browser profile, so always start the game this way to keep the
+leaderboard, settings and recordings together. The first time on a Mac, right-click
+the launcher, choose **Open**, then press **Open**.
+
 **Touch laptop or Windows tablet**
 
 1. Copy `index.html` to the device.
